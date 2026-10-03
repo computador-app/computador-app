@@ -1,3 +1,4 @@
+import { LiveChatPanel } from "./LiveChatPanel";
 import { ModelSelector } from "../ui/ModelSelector";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { models, type Scenario } from "../domain/service";
@@ -23,6 +24,7 @@ export function ChatPanel() {
   useEffect(() => {
     end.current?.scrollIntoView({ block: "nearest" });
   }, [session?.messages]);
+  if (state.live) return <LiveChatPanel />;
   if (!session) return null;
   const busy = ["running", "waiting_permission"].includes(session.status);
   const submit = (e?: FormEvent) => {

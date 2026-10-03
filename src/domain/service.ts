@@ -1,3 +1,4 @@
+import type { AppSnapshot, BackendAPI } from "../shared/protocol";
 export type Locale = "pt-BR" | "en";
 export type RunStatus =
   | "idle"
@@ -47,6 +48,8 @@ export interface Activity {
   time: string;
 }
 export interface DomainState {
+  live?: AppSnapshot;
+  error?: string;
   workspace: { id: string; name: string; path: string };
   sessions: Session[];
   activeSessionId: string;
@@ -57,6 +60,9 @@ export interface DomainState {
   events: Activity[];
 }
 export interface ApplicationService {
+  backend?: BackendAPI;
+  start?: () => void;
+  clearError?: () => void;
   getSnapshot: () => DomainState;
   subscribe: (callback: () => void) => () => void;
   openWorkspace: (id: "demo" | "research") => void;

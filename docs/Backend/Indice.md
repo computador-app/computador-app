@@ -22,3 +22,5 @@ Documentação planejada desta área. Consulte as notas canônicas e suas pendê
 ---
 
 [Início](../Inicio.md)
+
+- [Fase 2 implementada — provedores, sessões e ferramentas](Fase-2-implementada.md)

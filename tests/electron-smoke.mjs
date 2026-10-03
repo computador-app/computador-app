@@ -13,6 +13,8 @@ const desktop = await electron.launch({
     ...process.env,
     NODE_ENV: "test",
     COMPUTADOR_TEST_USER_DATA: userData,
+    COMPUTADOR_TEST_WORKSPACE: userData,
+    COMPUTADOR_FAKE_LLM: "1",
   },
 });
 let previousClipboard;
@@ -22,7 +24,7 @@ try {
   await window.locator("#root > *").first().waitFor();
   assert.deepEqual(
     await window.evaluate(() => Object.keys(globalThis.desktop).sort()),
-    ["edit", "onCommand", "setLocale"],
+    ["backend", "edit", "onCommand", "setLocale"],
   );
   assert.equal(
     await window.evaluate(() => typeof globalThis.require),
@@ -39,6 +41,7 @@ try {
       "Native menu must be visible inside the desktop window",
     );
   }
+  await window.evaluate(async () => { await globalThis.desktop.backend.openWorkspace(); await globalThis.desktop.backend.createSession(); });
   const composer = window.locator("textarea").first();
   await composer.fill("Native edit command");
   await composer.focus();

@@ -32,7 +32,12 @@ function loadBridge() {
 
 test("preload exposes only the narrow methods and strips Electron events", () => {
   const { api, ipc } = loadBridge();
-  assert.deepEqual(Object.keys(api).sort(), ["edit", "onCommand", "setLocale"]);
+  assert.deepEqual(Object.keys(api).sort(), [
+    "backend",
+    "edit",
+    "onCommand",
+    "setLocale",
+  ]);
   const received = [];
   const unsubscribe = api.onCommand((...args) => received.push(args));
   ipc.emit("desktop:command", { sender: "privileged" }, "session.new");
@@ -73,4 +78,17 @@ test("preload edit only dispatches native editing actions", () => {
       action,
     ]),
   );
+});
+
+test("backend bridge exposes explicit operations and removes subscriptions", () => {
+  const { api, ipc } = loadBridge();
+  assert.equal(api.backend.invoke, undefined);
+  assert.equal(api.backend.send, undefined);
+  const received = [];
+  const off = api.backend.onEvent((event) => received.push(event));
+  const payload = { sequence: 2, sessionId: "s", runId: "r", snapshot: {} };
+  ipc.emit("backend:event", { sender: "privileged" }, payload);
+  assert.deepEqual(received, [payload]);
+  off();
+  assert.equal(ipc.listenerCount("backend:event"), 0);
 });

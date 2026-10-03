@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useDomain } from "../domain/context";
 import { useText } from "./translations";
 export function SessionsPanel() {
-  const { state, service, newSession, selectSession } = useDomain();
+  const { state, service, newSession, selectSession, locale } = useDomain();
   const t = useText();
   const [query, setQuery] = useState("");
+  const [renaming, setRenaming] = useState("");
+  const [title, setTitle] = useState("");
   const sessions = state.sessions.filter(
     (s) =>
       s.workspaceId === state.workspace.id &&
@@ -55,6 +57,40 @@ export function SessionsPanel() {
               </span>
               {s.status === "running" && <span className="status-dot pulse" />}
             </button>
+            {state.live &&
+              (renaming === s.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    service.updateSession(s.id, { title });
+                    setRenaming("");
+                  }}
+                >
+                  <input
+                    autoFocus
+                    aria-label={
+                      locale === "en" ? "Session title" : "Título da sessão"
+                    }
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setRenaming("");
+                    }}
+                  />
+                  <button type="submit">✓</button>
+                </form>
+              ) : (
+                <button
+                  className="icon-button"
+                  aria-label={`${locale === "en" ? "Rename" : "Renomear"}: ${s.title || t.untitled}`}
+                  onClick={() => {
+                    setRenaming(s.id);
+                    setTitle(s.title);
+                  }}
+                >
+                  ✎
+                </button>
+              ))}
             <button
               className="delete-session icon-button"
               aria-label={`${t.remove}: ${s.title || t.untitled}`}

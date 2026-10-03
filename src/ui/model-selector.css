@@ -29,12 +29,9 @@
   align-items: stretch;
 }
 .model-provider-menu {
-  flex: 1;
+  flex: 0 0 45%;
   min-width: 0;
   overflow-y: auto;
-}
-.model-picker.with-submenu .model-provider-menu {
-  flex: 0 0 45%;
 }
 .model-menu-heading {
   color: var(--muted);
@@ -88,3 +85,12 @@
   font-size: 0.85rem;
   color: var(--muted);
 }
+button.model-selector { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+button.model-selector:hover { background: var(--surface2); border-color: var(--accent); }
+.model-picker { background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px; }
+.model-picker button { color: var(--text); border-radius: 5px; }
+.model-menu-empty { padding: 12px; font-size: 12px; color: var(--muted); }
+.settings-dialog .model-picker button { border: 0; background: transparent; }
+.settings-dialog .model-picker button:hover, .settings-dialog .model-picker button.active, .settings-dialog .model-picker button:focus-visible { background: var(--accent-soft); color: var(--accent); }
+
+.model-submenu-placeholder { display: flex; align-items: center; justify-content: center; text-align: center; }

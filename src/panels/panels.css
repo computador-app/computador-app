@@ -311,6 +311,7 @@
 }
 .model-controls {
   display: flex;
+  align-items: center;
   gap: 5px;
   min-width: 0;
   flex-wrap: wrap;
@@ -581,3 +582,10 @@
 .code-line .code-keyword {
   color: var(--accent);
 }
+.tool-card { margin: 10px 20px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.tool-card summary { cursor: pointer; font-size: 12px; }
+.tool-card pre, .terminal-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; font-size: 12px; }
+.usage-label { display: block; opacity: .65; margin-top: 8px; }
+.model-controls select { max-width: 260px; }
+.session-row form { display: flex; min-width: 80px; }
+.session-row form input { width: 100%; min-width: 0; }

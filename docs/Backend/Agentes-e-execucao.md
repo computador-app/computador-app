@@ -6,6 +6,9 @@ origem: "harness-architecture.md; seções 7, 8, 9, 35, 36"
 
 # Agentes, loop e delegação
 
+> **Atualização de 03/10/2026:** a [fase 2 implementada](Fase-2-implementada.md) entrega pi-ai real, SQLite, sessões por pasta e ferramentas locais sem pedidos de permissão. As seções abaixo preservam a arquitetura planejada; recursos além desse incremento continuam futuros.
+
+
 Todos os agentes compartilham o contrato de runtime, mas cada run mantém identidade, estado e limites próprios. Delegação cria um child run independente. Fechar um painel não cancela uma execução em background; sobrevivência ao encerramento do aplicativo não é uma garantia do MVP.
 
 > **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.

@@ -93,7 +93,12 @@ const labels = {
   },
 };
 
-function createMenuTemplate(locale, dispatch, platform = process.platform) {
+function createMenuTemplate(
+  locale,
+  dispatch,
+  platform = process.platform,
+  recent = [],
+) {
   const t = labels[locale === "pt-BR" ? "pt" : locale] || labels.en;
   const command = (label, id, accelerator) => ({
     label,
@@ -131,10 +136,13 @@ function createMenuTemplate(locale, dispatch, platform = process.platform) {
         command(t.open, "workspace.open", "CmdOrCtrl+O"),
         {
           label: t.recent,
-          submenu: [
-            command(t.demo, "workspace.recent.demo"),
-            command(t.research, "workspace.recent.research"),
-          ],
+          submenu: recent.map((item) =>
+            command(
+              item.name + " — " + item.path,
+              "workspace.recent:" + item.id,
+            ),
+          ),
+          enabled: recent.length > 0,
         },
         separator,
         ...(platform !== "darwin" ? [preferences, separator] : []),

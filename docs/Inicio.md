@@ -41,3 +41,5 @@ O `harness-architecture.md` original permanece como histórico na raiz. Novas de
 ---
 
 [Início](Inicio.md)
+
+- [Fase 2 implementada — provedores, sessões e ferramentas](Backend/Fase-2-implementada.md)

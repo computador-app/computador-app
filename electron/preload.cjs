@@ -1,6 +1,36 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+const backend = {};
+for (const name of [
+  "snapshot",
+  "openWorkspace",
+  "createSession",
+  "selectSession",
+  "updateSession",
+  "deleteSession",
+  "sendMessage",
+  "cancelRun",
+  "login",
+  "answerAuth",
+  "cancelAuth",
+  "removeProvider",
+  "setDefault",
+  "setHidden",
+  "refreshModels",
+  "listFiles",
+  "readFile",
+]) {
+  backend[name] = (...args) =>
+    ipcRenderer.invoke("backend:request", name, args);
+}
+backend.onEvent = (callback) => {
+  if (typeof callback !== "function") throw new TypeError("Expected callback");
+  const listener = (_event, payload) => callback(payload);
+  ipcRenderer.on("backend:event", listener);
+  return () => ipcRenderer.removeListener("backend:event", listener);
+};
 contextBridge.exposeInMainWorld("desktop", {
+  backend,
   onCommand(callback) {
     if (typeof callback !== "function")
       throw new TypeError("Expected a command callback");

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useDomain } from "../domain/context";
 import { useText } from "./translations";
 export function ViewerPanel() {
-  const { state, openFile } = useDomain();
+  const { state, openFile, locale } = useDomain();
   const t = useText();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -68,7 +68,13 @@ export function ViewerPanel() {
         <span>
           {file.content.split("\n").length} {t.lines} · UTF-8
         </span>
-        <span>{t.readonly}</span>
+        <span>
+          {state.live
+            ? locale === "en"
+              ? "Read-only"
+              : "Somente leitura"
+            : t.readonly}
+        </span>
       </div>
     </div>
   );

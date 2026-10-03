@@ -6,6 +6,9 @@ origem: "harness-architecture.md"
 
 # Serviços de aplicação e IPC
 
+> **Atualização de 03/10/2026:** a [fase 2 implementada](../Backend/Fase-2-implementada.md) entrega pi-ai real, SQLite, sessões por pasta e ferramentas locais sem pedidos de permissão. As seções abaixo preservam a arquitetura planejada; recursos além desse incremento continuam futuros.
+
+
 Os nomes abaixo são contratos previstos pela fonte. Exceto LLMService, as assinaturas completas ainda não foram definidas. Esta nota delimita responsabilidades para orientar sua especificação antes de implementar os consumidores.
 
 | Serviço | Responsabilidade prevista | Implementação inicial |

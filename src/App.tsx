@@ -165,7 +165,11 @@ function Shell({
   ];
   useEffect(() => {
     const handlers: Record<string, (payload?: unknown) => void> = {
-      "workspace.open": () => setModal("workspace"),
+      "workspace.open": () => {
+        if (domain.service.backend) domain.openWorkspace("");
+        else setModal("workspace");
+      },
+      "workspace.recent": (id) => domain.openWorkspace(String(id)),
       "workspace.recent.demo": () => domain.openWorkspace("demo"),
       "workspace.recent.research": () => domain.openWorkspace("research"),
       "preferences.open": () => setModal("settings"),
@@ -196,7 +200,11 @@ function Shell({
     const disposers = Object.entries(handlers).map(([id, handler]) =>
       commands.register(id, handler),
     );
-    const unsubscribe = window.desktop?.onCommand((id) => commands.execute(id));
+    const unsubscribe = window.desktop?.onCommand((id) => {
+      if (id.startsWith("workspace.recent:"))
+        domain.openWorkspace(id.slice("workspace.recent:".length));
+      else commands.execute(id);
+    });
     return () => {
       disposers.forEach((dispose) => dispose());
       unsubscribe?.();
@@ -276,7 +284,7 @@ function Shell({
           <kbd>Ctrl ⇧ P</kbd>
         </button>
         <span className="preview-label">
-          PREVIEW <span>0.1</span>
+          {domain.service.backend ? "COMPUTADOR" : "PREVIEW"} <span>0.2</span>
         </span>
       </header>
       {!window.desktop && (
@@ -376,15 +384,25 @@ function Shell({
       </main>
       <footer className="statusbar">
         <div>
-          <GitBranch size={12} />
-          <span>main</span>
-          <span className="status-separator">/</span>
+          {!domain.service.backend && (
+            <>
+              <GitBranch size={12} />
+              <span>main</span>
+              <span className="status-separator">/</span>
+            </>
+          )}
           <FolderOpen size={12} />
           <span>{domain.state.workspace.name}</span>
         </div>
         <div>
           <span className="status-dot" />
-          <span>{t("mock")}</span>
+          <span>
+            {domain.service.backend
+              ? locale === "en"
+                ? "Local runtime"
+                : "Runtime local"
+              : t("mock")}
+          </span>
           <span className="status-separator">·</span>
           <button onClick={() => execute("preferences.open")}>
             {locale === "en" ? "EN" : "PT-BR"}
@@ -407,6 +425,17 @@ function Shell({
           </button>
         </div>
       </footer>
+      {domain.state.error && (
+        <div className="toast" role="alert">
+          {domain.state.error}
+          <button
+            onClick={() => domain.service.clearError?.()}
+            aria-label={locale === "en" ? "Close" : "Fechar"}
+          >
+            ×
+          </button>
+        </div>
+      )}
       {notice && (
         <div className="toast" role="status">
           {notice}
@@ -479,8 +508,14 @@ function Shell({
           <span className="brand-icon large">
             <Sparkles size={30} />
           </span>
-          <p>{t("aboutText")}</p>
-          <p className="muted">{t("local")}. v0.1.0</p>
+          <p>
+            {domain.service.backend
+              ? locale === "en"
+                ? "Project assistant with providers, persistent chats and local tools."
+                : "Assistente de projetos com provedores, chats persistentes e ferramentas locais."
+              : t("aboutText")}
+          </p>
+          <p className="muted">{t("local")}. v0.2.0</p>
         </Modal>
       )}
       {modal === "commands" && (

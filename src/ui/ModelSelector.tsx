@@ -8,7 +8,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronRight, Check } from "lucide-react";
-import { modelProviders } from "../domain/models";
+import { modelProviders, type ModelProvider } from "../domain/models";
 import type { Locale } from "../i18n";
 import "./model-selector.css";
 
@@ -18,12 +18,16 @@ export function ModelSelector({
   disabled = false,
   label,
   locale,
+  providers = modelProviders,
+  displayValue,
 }: {
   value: string;
   onChange: (id: string) => void;
   disabled?: boolean;
   label: string;
   locale: Locale;
+  providers?: ModelProvider[];
+  displayValue?: string;
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -34,13 +38,13 @@ export function ModelSelector({
   const [position, setPosition] = useState({
     left: 0,
     top: 0,
-    width: 240,
+    width: 500,
     height: 360,
   });
-  const selectedProvider = modelProviders.find((provider) =>
+  const selectedProvider = providers.find((provider) =>
     provider.models.some((model) => model.id === value),
   );
-  const provider = modelProviders.find((provider) => provider.id === active);
+  const provider = providers.find((provider) => provider.id === active);
   const pt = locale === "pt-BR";
   const close = (restoreFocus = true) => {
     setOpen(false);
@@ -61,12 +65,8 @@ export function ModelSelector({
     const place = () => {
       const rect = trigger.current?.getBoundingClientRect();
       if (!rect) return;
-      const width = Math.min(provider ? 500 : 240, window.innerWidth - 16);
+      const width = Math.min(500, window.innerWidth - 16);
       const height = Math.min(360, window.innerHeight - 16);
-      const expectedHeight = Math.min(
-        height,
-        44 + 36 * Math.max(modelProviders.length, provider?.models.length || 0),
-      );
       setPosition({
         width,
         height,
@@ -74,10 +74,10 @@ export function ModelSelector({
         top: Math.max(
           8,
           Math.min(
-            rect.bottom + expectedHeight + 8 > window.innerHeight
-              ? rect.top - expectedHeight - 5
+            rect.bottom + height + 8 > window.innerHeight
+              ? rect.top - height - 5
               : rect.bottom + 5,
-            window.innerHeight - expectedHeight - 8,
+            window.innerHeight - height - 8,
           ),
         ),
       });
@@ -87,11 +87,11 @@ export function ModelSelector({
       popup.current.showPopover();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [open, active]);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     document
-      .getElementById(`${id}-${selectedProvider?.id || modelProviders[0].id}`)
+      .getElementById(`${id}-${selectedProvider?.id || providers[0]?.id}`)
       ?.focus();
     const outside = (event: PointerEvent) => {
       if (
@@ -162,7 +162,7 @@ export function ModelSelector({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? `${id}-providers` : undefined}
-        title={value}
+        title={displayValue ?? value}
         onClick={() => (open ? close() : setOpen(true))}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -171,7 +171,7 @@ export function ModelSelector({
           }
         }}
       >
-        <span>{value}</span>
+        <span>{displayValue ?? value}</span>
         <ChevronDown size={12} />
       </button>
       {open &&
@@ -184,7 +184,7 @@ export function ModelSelector({
               left: position.left,
               top: position.top,
               width: position.width,
-              maxHeight: position.height,
+              height: position.height,
             }}
             onKeyDown={keydown}
           >
@@ -197,7 +197,12 @@ export function ModelSelector({
               <div className="model-menu-heading">
                 {pt ? "Provedores" : "Providers"}
               </div>
-              {modelProviders.map((item) => (
+              {!providers.length && (
+                <p className="model-menu-empty">
+                  {pt ? "Nenhum modelo disponível" : "No models available"}
+                </p>
+              )}
+              {providers.map((item) => (
                 <button
                   type="button"
                   key={item.id}
@@ -224,6 +229,15 @@ export function ModelSelector({
                 </button>
               ))}
             </div>
+            {!provider && (
+              <div className="model-submenu model-submenu-placeholder">
+                <p className="model-menu-empty">
+                  {pt
+                    ? "Selecione um provedor para ver os modelos"
+                    : "Select a provider to see its models"}
+                </p>
+              </div>
+            )}
             {provider && (
               <div
                 ref={submenu}
@@ -233,6 +247,13 @@ export function ModelSelector({
                 aria-label={`${label} · ${provider.name}`}
               >
                 <div className="model-menu-heading">{provider.name}</div>
+                {!provider.models.length && (
+                  <p className="model-menu-empty">
+                    {pt
+                      ? "Todos os modelos estão ocultos"
+                      : "All models are hidden"}
+                  </p>
+                )}
                 {provider.models.map((model) => (
                   <button
                     type="button"
@@ -251,7 +272,7 @@ export function ModelSelector({
               </div>
             )}
           </div>,
-          document.body,
+          trigger.current?.closest("dialog") ?? document.body,
         )}
     </>
   );

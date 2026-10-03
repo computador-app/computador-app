@@ -6,6 +6,9 @@ origem: "harness-architecture.md; seções 19, 20, 21, 38"
 
 # Segurança, permissões e secrets
 
+> **Atualização de 03/10/2026:** a [fase 2 implementada](Fase-2-implementada.md) entrega pi-ai real, SQLite, sessões por pasta e ferramentas locais sem pedidos de permissão. As seções abaixo preservam a arquitetura planejada; recursos além desse incremento continuam futuros.
+
+
 Aplicar validação e políticas na camada privilegiada. O renderer pode solicitar consentimento, mas não concede privilégio por conta própria. A tipagem TypeScript não substitui a validação de mensagens IPC em tempo de execução.
 
 > **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.

@@ -4,7 +4,15 @@ if (process.platform === "linux") {
   process.env.ELECTRON_FORCE_WINDOW_MENU_BAR = "1";
 }
 
-const { app, BrowserWindow, Menu, ipcMain } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Menu,
+  ipcMain,
+  dialog,
+  shell,
+  safeStorage,
+} = require("electron");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { createMenuTemplate } = require("./menu.cjs");
@@ -13,12 +21,23 @@ app.setName("Computador");
 if (process.env.NODE_ENV === "test" && process.env.COMPUTADOR_TEST_USER_DATA) {
   app.setPath("userData", process.env.COMPUTADOR_TEST_USER_DATA);
 }
+const hasInstanceLock = app.requestSingleInstanceLock();
+if (!hasInstanceLock) app.quit();
+app.on("second-instance", () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
 app.setAboutPanelOptions({
   applicationName: "Computador",
-  applicationVersion: "0.1.0",
-  comments: "Frontend preview · mock services / serviços simulados",
+  applicationVersion: "0.2.0",
+  comments: "Computador · Agente de projetos",
 });
 let mainWindow;
+let backend;
+let dispatch;
+let shuttingDown = false;
 let locale = "pt-BR";
 
 function attachWindowMenu(window) {
@@ -31,10 +50,15 @@ function attachWindowMenu(window) {
 function updateMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
-      createMenuTemplate(locale, (command) => {
-        if (mainWindow && !mainWindow.isDestroyed())
-          mainWindow.webContents.send("desktop:command", command);
-      }),
+      createMenuTemplate(
+        locale,
+        (command) => {
+          if (mainWindow && !mainWindow.isDestroyed())
+            mainWindow.webContents.send("desktop:command", command);
+        },
+        process.platform,
+        backend?.snapshot().recent ?? [],
+      ),
     ),
   );
   for (const window of BrowserWindow.getAllWindows()) attachWindowMenu(window);
@@ -104,12 +128,72 @@ ipcMain.on("desktop:locale", (event, nextLocale) => {
   updateMenu();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (!hasInstanceLock) return;
+  const module = await import("../dist-electron/backend/index.js");
+  dispatch = module.dispatch;
+  backend = await module.createBackend({
+    userData: app.getPath("userData"),
+    fake:
+      process.env.NODE_ENV === "test" &&
+      process.env.COMPUTADOR_FAKE_LLM === "1",
+    encryption: {
+      available: () =>
+        safeStorage.isEncryptionAvailable() &&
+        (process.platform !== "linux" ||
+          safeStorage.getSelectedStorageBackend() !== "basic_text"),
+      encrypt: (value) => safeStorage.encryptString(value),
+      decrypt: (value) => safeStorage.decryptString(Buffer.from(value)),
+    },
+    openFolder: async () => {
+      if (
+        process.env.NODE_ENV === "test" &&
+        process.env.COMPUTADOR_TEST_WORKSPACE
+      )
+        return process.env.COMPUTADOR_TEST_WORKSPACE;
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ["openDirectory"],
+      });
+      return result.canceled ? undefined : result.filePaths[0];
+    },
+    openExternal: async (url) => {
+      const parsed = new URL(url);
+      if (!["https:", "http:"].includes(parsed.protocol))
+        throw new Error("Invalid URL");
+      if (process.env.NODE_ENV !== "test") await shell.openExternal(url);
+    },
+  });
+  let recentIds = "";
+  backend.subscribe((event) => {
+    const next = event.snapshot.recent.map((w) => w.id).join(",");
+    if (next !== recentIds) {
+      recentIds = next;
+      updateMenu();
+    }
+    if (mainWindow && !mainWindow.isDestroyed())
+      mainWindow.webContents.send("backend:event", event);
+  });
+  ipcMain.handle("backend:request", async (event, method, args) => {
+    if (
+      !mainWindow ||
+      event.sender !== mainWindow.webContents ||
+      event.senderFrame !== mainWindow.webContents.mainFrame
+    )
+      throw new Error("Unauthorized sender");
+    return dispatch(backend, method, args);
+  });
   updateMenu();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+app.on("before-quit", (event) => {
+  if (backend && !shuttingDown) {
+    event.preventDefault();
+    shuttingDown = true;
+    backend.close().finally(() => app.quit());
+  }
 });
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();

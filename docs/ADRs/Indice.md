@@ -25,3 +25,5 @@ Decisões explícitas aceitas como direção arquitetural. Os ADRs 001–010 pre
 ---
 
 [Início](../Inicio.md)
+
+- [ADR-014 — Fase 2 local e permissões futuras](ADR-014-Fase-2-local-sem-permissoes.md)

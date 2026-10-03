@@ -9,17 +9,16 @@ function flatten(items) {
   ]);
 }
 
-test("native menu dispatches every supported mock workspace and layout command", () => {
+test("native menu dispatches real recent workspaces and layout commands", () => {
   const received = [];
   const items = flatten(
-    createMenuTemplate("en", (command) => received.push(command), "linux"),
+    createMenuTemplate("en", (command) => received.push(command), "linux", [{id:"demo",name:"Project",path:"/project"}]),
   );
   items.filter((item) => item.click).forEach((item) => item.click());
   assert.deepEqual(received, [
     "session.new",
     "workspace.open",
-    "workspace.recent.demo",
-    "workspace.recent.research",
+    "workspace.recent:demo",
     "preferences.open",
     "panel.chat",
     "panel.sessions",

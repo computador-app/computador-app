@@ -6,6 +6,9 @@ origem: "harness-architecture.md; seções 50, 67"
 
 # Fases do MVP
 
+> **Atualização de 03/10/2026:** a [fase 2 implementada](../Backend/Fase-2-implementada.md) entrega pi-ai real, SQLite, sessões por pasta e ferramentas locais sem pedidos de permissão. As seções abaixo preservam a arquitetura planejada; recursos além desse incremento continuam futuros.
+
+
 A sequência é frontend-first: validar a experiência principal com mocks antes de integrar LLM e ferramentas reais. Os contratos de Task, ExecutionRuntime, WorkspaceContext e HostRuntime devem preparar a evolução local/remota, sem antecipar o servidor.
 
 > **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.

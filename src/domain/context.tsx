@@ -1,3 +1,4 @@
+import { NativeApplicationService } from "./native";
 import {
   createContext,
   useContext,
@@ -16,7 +17,7 @@ interface DomainContextValue {
   locale: Locale;
   state: DomainState;
   service: ApplicationService;
-  openWorkspace: (id: "demo" | "research") => void;
+  openWorkspace: (id: string) => void;
   newSession: () => void;
   selectSession: (id: string) => void;
   openFile: (path: string) => void;
@@ -35,17 +36,24 @@ export function DomainProvider({
 }) {
   const ref = useRef<ApplicationService | null>(null);
   if (!ref.current)
-    ref.current = suppliedService ?? new MockApplicationService();
+    ref.current =
+      suppliedService ??
+      (window.desktop?.backend
+        ? new NativeApplicationService(window.desktop.backend)
+        : new MockApplicationService());
   const service = ref.current;
   const state = useSyncExternalStore(service.subscribe, service.getSnapshot);
-  useEffect(() => () => service.dispose(), [service]);
+  useEffect(() => {
+    service.start?.();
+    return () => service.dispose();
+  }, [service]);
   return (
     <Context.Provider
       value={{
         locale,
         state,
         service,
-        openWorkspace: service.openWorkspace,
+        openWorkspace: (id) => service.openWorkspace(id as "demo" | "research"),
         selectSession: (id) => {
           service.selectSession(id);
           onCommand("session.open");

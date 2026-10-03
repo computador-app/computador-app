@@ -80,7 +80,7 @@ export function FilesPanel() {
     <div className="panel-body">
       <div className="panel-toolbar">
         <span className="eyebrow">{t.files}</span>
-        <span className="subtle-badge">MOCK</span>
+        {!state.live && <span className="subtle-badge">MOCK</span>}
       </div>
       <div className="workspace-folder">
         <ChevronDown size={11} aria-hidden="true" />
