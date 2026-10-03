@@ -31,7 +31,7 @@ Para executar o build local no Electron: `npm run build` seguido de `npm start`.
 - Menu exclusivo do sistema no Electron (barra global no macOS; menu nativo da janela em Windows/Linux), com comandos de abrir pastas de demonstração, recentes, edição, exibição e preferências.
 - Chat com sessões, streaming mock, cancelamento, permissão e falha simulados.
 - Árvore de arquivos mock, visualizador de código e prévia segura de Markdown.
-- Painéis de agentes, atividade e terminal ilustrativo.
+- Terminal ilustrativo; agentes de demonstração selecionáveis no chat.
 - Docking nas quatro direções, abas, redimensionamento, presets Padrão/Foco/Revisão e layout salvo.
 - Configurações em cinco abas; português/inglês, temas claro/escuro e tamanho do texto.
 

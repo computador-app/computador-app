@@ -66,12 +66,4 @@ test("model submenus support keyboard navigation and English labels", async ({
   await page.keyboard.press("Escape");
   await expect(selector).toBeFocused();
   await expect(page.getByRole("menu")).toHaveCount(0);
-  await page.getByRole("button", { name: "Open Agents", exact: true }).click();
-  await page.getByRole("button", { name: "Create agent", exact: true }).click();
-  await expect(
-    page.getByRole("option", { name: "User", exact: true }),
-  ).toHaveCount(1);
-  await expect(
-    page.getByRole("option", { name: "Global", exact: true }),
-  ).toHaveCount(0);
 });

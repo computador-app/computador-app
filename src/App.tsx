@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bot,
   ChevronDown,
   Command,
   Files,
@@ -122,8 +121,6 @@ const icons = {
   chat: MessageSquare,
   viewer: Code2,
   markdown: FileText,
-  agents: Bot,
-  activity: TerminalSquare,
   terminal: TerminalSquare,
 };
 function Shell({

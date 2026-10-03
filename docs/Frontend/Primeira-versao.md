@@ -65,3 +65,8 @@ Validado neste ambiente Linux. Os menus possuem estrutura específica para macOS
 O KDE deste ambiente anuncia `com.canonical.AppMenu.Registrar`. O teste de regressão reproduziu `isMenuBarVisible() === false` mesmo com o menu registrado, após remover a barra web. No Linux o bootstrap agora define `ELECTRON_FORCE_WINDOW_MENU_BAR=1` antes da criação das janelas, associa o menu à janela e desativa auto-hide. Isso mantém a barra nativa local, sem depender de um widget de menu global. A integração global do macOS permanece intacta.
 
 O smoke verifica visibilidade ao abrir e depois de trocar idioma. Referência: [variável documentada pelo Electron](https://www.electronjs.org/docs/latest/api/environment-variables#electron_force_window_menu_bar-linux).
+
+
+## Ajuste de painéis — 03/10/2026
+
+Os painéis Agentes e Atividade foram retirados da interface, dos menus e dos presets. Layouts anteriores são restaurados com remoção apenas dessas instâncias. Agentes mock continuam disponíveis para seleção no chat; a aba de configurações com políticas ilustrativas permanece. A árvore de arquivos agora exibe ícones de pasta aberta/fechada, além dos indicadores de expansão.

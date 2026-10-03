@@ -6,8 +6,6 @@ import {
   FilesPanel,
   ViewerPanel,
   MarkdownPanel,
-  AgentsPanel,
-  ActivityPanel,
   TerminalPanel,
 } from "../panels";
 export interface PanelDefinition {
@@ -46,13 +44,6 @@ for (const definition of [
     title: "markdown",
     component: MarkdownPanel,
     location: "right",
-  },
-  { id: "agents", title: "agents", component: AgentsPanel, location: "right" },
-  {
-    id: "activity",
-    title: "activity",
-    component: ActivityPanel,
-    location: "below",
   },
   {
     id: "terminal",

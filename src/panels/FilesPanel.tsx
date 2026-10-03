@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { useDomain } from "../domain/context";
 import { useText } from "./translations";
@@ -38,17 +39,36 @@ export function FilesPanel() {
             }
             aria-expanded={folder ? !collapsed : undefined}
           >
-            <span className={folder ? "folder-icon" : "file-icon"}>
-              {folder
-                ? collapsed
-                  ? "▸"
-                  : "▾"
-                : name.endsWith(".php")
+            {folder ? (
+              <>
+                {collapsed ? (
+                  <ChevronRight size={11} aria-hidden="true" />
+                ) : (
+                  <ChevronDown size={11} aria-hidden="true" />
+                )}
+                {collapsed ? (
+                  <Folder
+                    size={15}
+                    className="folder-icon"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <FolderOpen
+                    size={15}
+                    className="folder-icon"
+                    aria-hidden="true"
+                  />
+                )}
+              </>
+            ) : (
+              <span className="file-icon" aria-hidden="true">
+                {name.endsWith(".php")
                   ? "◇"
                   : name.endsWith(".md")
                     ? "▤"
                     : "{}"}
-            </span>
+              </span>
+            )}
             <span>{name}</span>
           </button>
           {folder && !collapsed && render(path + "/", depth + 1)}
@@ -63,7 +83,9 @@ export function FilesPanel() {
         <span className="subtle-badge">MOCK</span>
       </div>
       <div className="workspace-folder">
-        ▾ <strong>{state.workspace.name}</strong>
+        <ChevronDown size={11} aria-hidden="true" />
+        <FolderOpen size={15} className="folder-icon" aria-hidden="true" />
+        <strong>{state.workspace.name}</strong>
       </div>
       <div className="file-tree">{render("", 0)}</div>
       <div className="panel-bottom-note">

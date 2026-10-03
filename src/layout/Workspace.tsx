@@ -153,13 +153,18 @@ export function applyPreset(api: DockviewApi, preset: Preset, locale: Locale) {
   );
   if (preset === "review") {
     add(api, "markdown", locale, "panel-viewer", "within");
-    add(api, "activity", locale, "main-chat", "below")?.api.setSize({
-      height: 190,
-    });
   }
   files?.api.setSize({ width: 230 });
   preview?.api.setSize({ width: 310 });
   api.getPanel("main-chat")?.api.setActive();
+}
+const removedPanelTypes = new Set(["agents", "activity"]);
+function restorePanels(api: DockviewApi, layout: SerializedDockview) {
+  api.fromJSON(layout);
+  // Let Dockview repair groups and geometry when removing retired panel instances.
+  for (const panel of [...api.panels]) {
+    if (removedPanelTypes.has(panel.params?.type)) api.removePanel(panel);
+  }
 }
 function readLayout(key: string): SerializedDockview | undefined {
   const raw = readStorage(key);
@@ -178,7 +183,8 @@ function readLayout(key: string): SerializedDockview | undefined {
   }[])
     if (
       panel.contentComponent !== "registered" ||
-      !panels.get(panel.params?.type || "")
+      (!panels.get(panel.params?.type || "") &&
+        !removedPanelTypes.has(panel.params?.type || ""))
     )
       throw new Error("Unknown panel");
   if (value.dock.popoutGroups?.length) throw new Error("Unsupported windows");
@@ -213,7 +219,7 @@ export function Workspace({
     const reset = () => applyPreset(api, "default", localeRef.current);
     try {
       const saved = readLayout(layoutKey);
-      if (saved) api.fromJSON(saved);
+      if (saved) restorePanels(api, saved);
       else reset();
     } catch {
       reset();
@@ -244,7 +250,7 @@ export function Workspace({
         try {
           const saved = readLayout(savedLayoutKey);
           if (!saved) return false;
-          api.fromJSON(saved);
+          restorePanels(api, saved);
           for (const panel of api.panels) {
             const definition = panels.get(panel.params?.type);
             if (definition)
