@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-panel-bootstrap'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Extension panel</title></head><body><script nonce="panel-bootstrap">
+/* Trusted bootstrap for an opaque-origin iframe. Never loaded in the main renderer. */
+(() => {
+  const channel = location.hash.slice(1);
+  let initialized = false;
+  addEventListener('message', function initialize(event) {
+    const m = event.data;
+    if (initialized || event.source !== parent || !m || m.protocol !== 1 || m.channel !== channel || m.type !== 'initialize' || typeof m.html !== 'string' || m.html.length > 262144 || typeof m.client !== 'string') return;
+    initialized = true;
+    removeEventListener('message', initialize);
+    const documentFragment = new DOMParser().parseFromString(m.html, 'text/html');
+    const scripts = [...documentFragment.querySelectorAll('script')];
+    const code = scripts.filter(script => !script.src && (!script.type || script.type === 'text/javascript')).map(script => script.textContent);
+    scripts.forEach(script => script.remove());
+    documentFragment.querySelectorAll('base,meta,link,iframe,object,embed,form').forEach(el => el.remove());
+    document.head.append(...documentFragment.head.childNodes);
+    document.body.replaceChildren(...documentFragment.body.childNodes);
+    for (const text of [m.client, ...code]) {
+      const script = document.createElement('script');
+      script.nonce = 'panel-bootstrap';
+      script.textContent = text;
+      document.body.append(script);
+    }
+  });
+  parent.postMessage({protocol: 1, channel, type: 'bootstrap'}, '*');
+})();
+
+</script></body></html>

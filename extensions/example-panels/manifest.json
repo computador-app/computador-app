@@ -1,0 +1,16 @@
+{
+  "id": "example.panels",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "en": "Example panels", "pt-BR": "Painel de exemplo" },
+  "permissions": ["commands.session.new", "events.workspace.changed"],
+  "panels": [
+    {
+      "id": "counter",
+      "title": { "en": "Counter", "pt-BR": "Contador" },
+      "entry": "counter.html",
+      "location": "right",
+      "multiple": true
+    }
+  ]
+}

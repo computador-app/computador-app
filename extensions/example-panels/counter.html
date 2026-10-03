@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        font: 13px system-ui;
+        color-scheme: dark;
+        --bg: #0c0c0f;
+        --text: #eeeef2;
+        --muted: #91919e;
+        --accent: #c58af9;
+        --border: #2a2a31;
+      }
+      html[data-theme="light"] {
+        color-scheme: light;
+        --bg: #faf9fc;
+        --text: #25212e;
+        --muted: #716b7d;
+        --accent: #7b36aa;
+        --border: #dad7e2;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 22px;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      p {
+        line-height: 1.7;
+        color: var(--muted);
+      }
+      .count {
+        font-size: 52px;
+        font-weight: 600;
+        color: var(--accent);
+        margin: 24px 0;
+      }
+      button {
+        padding: 9px 13px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        margin: 4px 4px 4px 0;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+      }
+      small {
+        display: block;
+        margin: 18px 0;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      #error {
+        color: #e87989;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 id="title"></h1>
+    <p id="description"></p>
+    <output class="count" data-testid="count">0</output>
+    <div>
+      <button id="increment" disabled></button
+      ><button id="reset" disabled></button>
+    </div>
+    <button id="session" disabled></button>
+    <p id="workspace"></p>
+    <small id="instance"></small>
+    <p id="error" role="alert"></p>
+    <script>
+      (async () => {
+        const sdk = window.harnessPanel;
+        let context = await sdk.ready;
+        const byId = (id) => document.getElementById(id);
+        function render(next) {
+          context = next;
+          const pt = next.locale === "pt-BR";
+          document.documentElement.lang = next.locale;
+          document.documentElement.dataset.theme = next.theme;
+          byId("title").textContent = pt
+            ? "Seu primeiro painel"
+            : "Your first panel";
+          byId("description").textContent = pt
+            ? "Este painel roda isolado e usa apenas o SDK do harness. Abra outra instância para testar estados visuais independentes."
+            : "This panel runs in isolation using only the harness SDK. Open another instance to try independent visual states.";
+          document.querySelector("[data-testid=count]").textContent = String(
+            next.state.count || 0,
+          );
+          byId("increment").textContent = pt ? "Incrementar" : "Increment";
+          byId("reset").textContent = pt ? "Zerar" : "Reset";
+          byId("session").textContent = pt
+            ? "Nova sessão pelo SDK"
+            : "New session through SDK";
+          byId("instance").textContent = next.instanceId;
+          for (const button of document.querySelectorAll("button"))
+            button.disabled = false;
+        }
+        async function action(fn) {
+          try {
+            byId("error").textContent = "";
+            await fn();
+          } catch (error) {
+            byId("error").textContent = error.message;
+          }
+        }
+        render(context);
+        sdk.on("context", render);
+        byId("increment").addEventListener("click", () =>
+          action(() =>
+            sdk.setState({ count: (Number(context.state.count) || 0) + 1 }),
+          ),
+        );
+        byId("reset").addEventListener("click", () =>
+          action(() => sdk.setState({ count: 0 })),
+        );
+        byId("session").addEventListener("click", () =>
+          action(() => sdk.execute("session.new")),
+        );
+        sdk.on("workspace.changed", (workspace) => {
+          byId("workspace").textContent =
+            (context.locale === "pt-BR" ? "Workspace: " : "Workspace: ") +
+            workspace.name;
+        });
+      })();
+    </script>
+  </body>
+</html>
