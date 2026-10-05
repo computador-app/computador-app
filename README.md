@@ -21,6 +21,13 @@ npm ci
 npm run dev:electron
 ```
 
+No macOS, `dev:electron` e `start` preparam automaticamente um bundle local
+chamado **Computador**, usado pelo menu global, Dock e alternador `Command+Tab`.
+O bundle fica no cache ignorado de `node_modules` e não altera a instalação do
+Electron. Linux e Windows continuam iniciando o executável padrão diretamente.
+O ícone-fonte com transparência fica em `assets/computador-icon.png`; a variante
+nativa usada pelo bundle do macOS fica em `assets/computador.icns`.
+
 A barra de menu web aparece apenas na prévia do navegador, como alternativa ao menu nativo. No Linux, o app mantém o menu nativo visível na janela e desativa a exportação para o menu global do desktop, evitando que ele desapareça em sessões KDE. Alterações no processo principal exigem fechar e abrir novamente o Electron.
 
 Para abrir somente o frontend no navegador: `npm run dev` e acesse `http://127.0.0.1:5173`.

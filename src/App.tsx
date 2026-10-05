@@ -11,12 +11,12 @@ import {
   Plus,
   Search,
   Settings as SettingsIcon,
-  Sparkles,
   Sun,
   TerminalSquare,
   FileText,
   Code2,
 } from "lucide-react";
+import appIcon from "../assets/computador-icon-ui.png";
 import { DomainProvider, useDomain } from "./domain/context";
 import { I18nContext, useI18n } from "./i18n";
 import { CommandRegistry } from "./layout/commands";
@@ -265,9 +265,7 @@ function Shell({
     <div className="app-shell">
       <header className="titlebar">
         <div className="brand">
-          <span className="brand-icon">
-            <Sparkles size={16} />
-          </span>
+          <img className="brand-icon" src={appIcon} alt="" aria-hidden="true" />
           <strong>Computador</strong>
           <span className="breadcrumb">/</span>
           <button onClick={() => execute("workspace.open")}>
@@ -505,9 +503,12 @@ function Shell({
       )}
       {modal === "about" && (
         <Modal title={t("about")} onClose={() => setModal(null)}>
-          <span className="brand-icon large">
-            <Sparkles size={30} />
-          </span>
+          <img
+            className="brand-icon large"
+            src={appIcon}
+            alt=""
+            aria-hidden="true"
+          />
           <p>
             {domain.service.backend
               ? locale === "en"
