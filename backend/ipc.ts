@@ -13,12 +13,50 @@ const model = (v: unknown) => {
   const o = obj(v);
   return { provider: str(o.provider), modelId: str(o.modelId) };
 };
+const thinkingLevels = new Set([
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+]);
+const thinkingLevel = (v: unknown) => {
+  const value = str(v, 16);
+  if (!thinkingLevels.has(value)) throw new Error("Invalid thinking level");
+  return value as
+    | "off"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | "max";
+};
+const images = (v: unknown) => {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > 4) throw new Error("Invalid images");
+  let total = 0;
+  return v.map((entry) => {
+    const image = obj(entry);
+    const mimeType = str(image.mimeType, 64);
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(mimeType))
+      throw new Error("Unsupported image type");
+    const data = str(image.data, 14_000_000);
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(data))
+      throw new Error("Invalid image data");
+    total += data.length;
+    if (total > 20_000_000) throw new Error("Images too large");
+    return { name: str(image.name, 255), data, mimeType };
+  });
+};
 export async function dispatch(
   app: Application,
   method: unknown,
   args: unknown,
 ) {
-  if (!Array.isArray(args) || args.length > 3)
+  if (!Array.isArray(args) || args.length > 4)
     throw new Error("Invalid arguments");
   switch (method) {
     case "snapshot":
@@ -35,20 +73,29 @@ export async function dispatch(
       return app.deleteSession(str(args[0]));
     case "updateSession": {
       const p = obj(args[1]);
-      if (Object.keys(p).some((k) => k !== "title" && k !== "model"))
+      if (
+        Object.keys(p).some(
+          (k) => k !== "title" && k !== "model" && k !== "thinkingLevel",
+        )
+      )
         throw new Error("Invalid patch");
       return app.updateSession(str(args[0]), {
         ...(p.title !== undefined ? { title: str(p.title, 200) } : {}),
         ...(p.model !== undefined ? { model: model(p.model) } : {}),
+        ...(p.thinkingLevel !== undefined
+          ? { thinkingLevel: thinkingLevel(p.thinkingLevel) }
+          : {}),
       });
     }
     case "sendMessage": {
       const text = str(args[1], 1024 * 1024).trim();
-      if (!text) throw new Error("Empty message");
+      const attachments = images(args[3]);
+      if (!text && !attachments.length) throw new Error("Empty message");
       return app.sendMessage(
         str(args[0]),
         text,
         args[2] === "en" ? "en" : "pt-BR",
+        attachments,
       );
     }
     case "cancelRun":
@@ -64,7 +111,10 @@ export async function dispatch(
     case "removeProvider":
       return app.removeProvider(str(args[0]));
     case "setDefault":
-      return app.setDefault(model(args[0]));
+      return app.setDefault(
+        model(args[0]),
+        args[1] === undefined ? undefined : thinkingLevel(args[1]),
+      );
     case "setHidden":
       if (
         !Array.isArray(args[0]) ||

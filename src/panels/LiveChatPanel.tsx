@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { X } from "lucide-react";
 import { useDomain } from "../domain/context";
 import { LiveModelPicker } from "../ui/LiveModelPicker";
+import { ImageAttachmentPicker } from "../ui/ImageAttachmentPicker";
+import {
+  preferredThinkingLevel,
+  ThinkingLevelSelector,
+} from "../ui/ThinkingLevelSelector";
+import { modelKey, type ImageAttachment } from "../shared/protocol";
 import { SafeMarkdown } from "./SafeMarkdown";
 export function LiveChatPanel() {
   const { state, service, locale, newSession, openWorkspace } = useDomain();
@@ -9,10 +16,20 @@ export function LiveChatPanel() {
   const pt = locale === "pt-BR";
   const session = live.sessions.find((s) => s.id === live.activeSessionId);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [attachments, setAttachments] = useState<
+    Record<string, ImageAttachment[]>
+  >({});
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const draft = session ? (drafts[session.id] ?? "") : "";
+  const attached = session ? (attachments[session.id] ?? []) : [];
+  const selectedModel = session?.model
+    ? live.models.find(
+        (model) => modelKey(model) === modelKey(session.model!),
+      )
+    : undefined;
+  const supportsImages = selectedModel?.input.includes("image") ?? false;
   const setDraft = (text: string) => {
     if (session) setDrafts((prev) => ({ ...prev, [session.id]: text }));
   };
@@ -22,6 +39,13 @@ export function LiveChatPanel() {
   useEffect(() => {
     setError("");
   }, [session?.id]);
+  useEffect(() => {
+    if (!session || supportsImages) return;
+    setAttachments((previous) => {
+      if (!previous[session.id]?.length) return previous;
+      return { ...previous, [session.id]: [] };
+    });
+  }, [session?.id, supportsImages]);
   const act = async (fn: () => Promise<unknown>) => {
     try {
       setError("");
@@ -60,13 +84,15 @@ export function LiveChatPanel() {
   const busy = session.status === "running";
   const submit = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!draft.trim() || busy || sending) return;
-    const text = draft;
+    if ((!draft.trim() && !attached.length) || busy || sending) return;
+    const text = draft.trim();
+    const images = attached;
     const id = session.id;
     setSending(true);
     try {
-      await backend.sendMessage(id, text, locale);
+      await backend.sendMessage(id, text, locale, images);
       setDrafts((prev) => ({ ...prev, [id]: "" }));
+      setAttachments((prev) => ({ ...prev, [id]: [] }));
       setError("");
     } catch (e) {
       setError((e as Error).message);
@@ -139,7 +165,19 @@ export function LiveChatPanel() {
                   )}
                 </header>
                 <div className="markdown-body">
-                  <SafeMarkdown>{m.text || "…"}</SafeMarkdown>
+                  {m.images?.length ? (
+                    <div className="message-images">
+                      {m.images.map((image, index) => (
+                        <img
+                          key={`${image.name}-${index}`}
+                          src={`data:${image.mimeType};base64,${image.data}`}
+                          alt={image.name}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                  {m.text ? <SafeMarkdown>{m.text}</SafeMarkdown> : null}
+                  {!m.text && !m.images?.length ? "…" : null}
                 </div>
                 {m.incomplete && (
                   <small>
@@ -173,6 +211,34 @@ export function LiveChatPanel() {
       </div>
       <form className="composer-area" onSubmit={submit}>
         <div className="composer">
+          {!!attached.length && (
+            <div className="composer-attachments">
+              {attached.map((image, index) => (
+                <div className="composer-attachment" key={`${image.name}-${index}`}>
+                  <img
+                    src={`data:${image.mimeType};base64,${image.data}`}
+                    alt=""
+                  />
+                  <span title={image.name}>{image.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`${pt ? "Remover" : "Remove"} ${image.name}`}
+                    disabled={busy || sending}
+                    onClick={() =>
+                      setAttachments((previous) => ({
+                        ...previous,
+                        [session.id]: (previous[session.id] ?? []).filter(
+                          (_, item) => item !== index,
+                        ),
+                      }))
+                    }
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <textarea
             aria-label={
               pt
@@ -199,14 +265,59 @@ export function LiveChatPanel() {
           />
           <div className="composer-controls">
             <div className="model-controls">
+              {supportsImages && (
+                <ImageAttachmentPicker
+                  locale={locale}
+                  disabled={busy || sending || attached.length >= 4}
+                  onError={setError}
+                  onAdd={(image) =>
+                    setAttachments((previous) => ({
+                      ...previous,
+                      [session.id]: [
+                        ...(previous[session.id] ?? []),
+                        image,
+                      ].slice(0, 4),
+                    }))
+                  }
+                />
+              )}
               <span>Computador</span>
               <LiveModelPicker
                 state={live}
                 value={session.model}
                 label={pt ? "Modelo" : "Model"}
                 disabled={busy || sending}
-                onChange={(model) =>
-                  void act(() => backend.updateSession(session.id, { model }))
+                onChange={(model) => {
+                  const descriptor = live.models.find(
+                    (item) => modelKey(item) === modelKey(model),
+                  );
+                  const thinkingLevel = preferredThinkingLevel(
+                    descriptor?.thinkingLevels ?? [],
+                    session.thinkingLevel,
+                  );
+                  if (!descriptor?.input.includes("image"))
+                    setAttachments((previous) => ({
+                      ...previous,
+                      [session.id]: [],
+                    }));
+                  void act(() =>
+                    backend.updateSession(session.id, {
+                      model,
+                      thinkingLevel,
+                    }),
+                  );
+                }}
+              />
+              <ThinkingLevelSelector
+                locale={locale}
+                label={pt ? "Nível de pensamento" : "Thinking level"}
+                value={session.thinkingLevel}
+                levels={selectedModel?.thinkingLevels ?? ["off"]}
+                disabled={busy || sending}
+                onChange={(thinkingLevel) =>
+                  void act(() =>
+                    backend.updateSession(session.id, { thinkingLevel }),
+                  )
                 }
               />
             </div>
@@ -224,7 +335,7 @@ export function LiveChatPanel() {
                 className="send-button"
                 type="submit"
                 aria-label={pt ? "Enviar mensagem" : "Send message"}
-                disabled={!draft.trim() || sending}
+                disabled={(!draft.trim() && !attached.length) || sending}
               >
                 ↑
               </button>

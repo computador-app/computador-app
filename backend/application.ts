@@ -9,8 +9,10 @@ import {
   type AppSnapshot,
   type AuthState,
   type ChatSession,
+  type ImageAttachment,
   type ModelRef,
   type RuntimeEvent,
+  type ThinkingLevel,
 } from "../src/shared/protocol.js";
 export class Application {
   private sessions: ChatSession[];
@@ -43,7 +45,10 @@ export class Application {
       runTimeout?: number;
     },
   ) {
-    this.sessions = store.sessions();
+    this.sessions = store.sessions().map((session) => ({
+      ...session,
+      thinkingLevel: session.thinkingLevel ?? "off",
+    }));
     if (!store.get("installationId", ""))
       store.set("installationId", randomUUID());
   }
@@ -77,6 +82,26 @@ export class Application {
   }
   private async refreshCatalog() {
     this.catalog = await this.llm.catalog();
+    for (const session of this.sessions) {
+      if (!session.model) continue;
+      const level = this.resolveThinkingLevel(
+        session.model,
+        session.thinkingLevel,
+      );
+      if (level !== session.thinkingLevel) {
+        session.thinkingLevel = level;
+        this.store.saveSession(session);
+      }
+    }
+    const defaultModel = this.store.get<ModelRef | null>("defaultModel", null);
+    if (defaultModel) {
+      const stored = this.store.get<ThinkingLevel>(
+        "defaultThinkingLevel",
+        "off",
+      );
+      const level = this.resolveThinkingLevel(defaultModel, stored);
+      if (level !== stored) this.store.set("defaultThinkingLevel", level);
+    }
     this.emit();
   }
   snapshot = (): AppSnapshot => ({
@@ -92,6 +117,10 @@ export class Application {
         : p,
     ),
     defaultModel: this.store.get<ModelRef | null>("defaultModel", null),
+    defaultThinkingLevel: this.resolveThinkingLevel(
+      this.store.get<ModelRef | null>("defaultModel", null),
+      this.store.get<ThinkingLevel>("defaultThinkingLevel", "off"),
+    ),
     hiddenModels: this.store.get<string[]>("hiddenModels", []),
     auth: this.auth,
     secureStorage: this.options.secureStorage(),
@@ -132,6 +161,27 @@ export class Application {
         "Selecione um modelo de um provedor conectado / Select a model from a connected provider",
       );
   }
+  private modelDescriptor(ref: ModelRef) {
+    return this.catalog.models.find((model) => modelKey(model) === modelKey(ref));
+  }
+  private resolveThinkingLevel(
+    ref: ModelRef | null,
+    requested?: ThinkingLevel,
+  ): ThinkingLevel {
+    const levels = ref ? this.modelDescriptor(ref)?.thinkingLevels : undefined;
+    if (!levels?.length) return requested ?? "off";
+    if (requested && levels.includes(requested)) return requested;
+    if (levels.includes("medium")) return "medium";
+    if (levels.includes("off")) return "off";
+    return levels[0];
+  }
+  private validThinkingLevel(ref: ModelRef, level: ThinkingLevel) {
+    const descriptor = this.modelDescriptor(ref);
+    if (!descriptor?.thinkingLevels.includes(level))
+      throw new Error(
+        "Nível de pensamento indisponível para este modelo / Thinking level unavailable for this model",
+      );
+  }
   async openWorkspace(id?: string) {
     const selected = id
       ? this.store.workspaces().find((w) => w.id === id)?.path
@@ -157,6 +207,10 @@ export class Application {
       workspaceId: this.workspace.id,
       title: "",
       model: this.store.get("defaultModel", null),
+      thinkingLevel: this.resolveThinkingLevel(
+        this.store.get("defaultModel", null),
+        this.store.get("defaultThinkingLevel", "off"),
+      ),
       messages: [],
       status: "idle",
       updatedAt: Date.now(),
@@ -176,12 +230,30 @@ export class Application {
     this.store.set("activeSessionId", id);
     this.emit();
   }
-  updateSession(id: string, patch: { title?: string; model?: ModelRef }) {
+  updateSession(
+    id: string,
+    patch: {
+      title?: string;
+      model?: ModelRef;
+      thinkingLevel?: ThinkingLevel;
+    },
+  ) {
     const s = this.session(id);
     if (patch.model) {
       if (this.runs.has(id)) throw new Error("Run active");
       this.validModel(patch.model);
+      if (patch.thinkingLevel)
+        this.validThinkingLevel(patch.model, patch.thinkingLevel);
       s.model = patch.model;
+      s.thinkingLevel = this.resolveThinkingLevel(
+        patch.model,
+        patch.thinkingLevel,
+      );
+    } else if (patch.thinkingLevel) {
+      if (this.runs.has(id)) throw new Error("Run active");
+      if (!s.model) throw new Error("Model unavailable");
+      this.validThinkingLevel(s.model, patch.thinkingLevel);
+      s.thinkingLevel = patch.thinkingLevel;
     }
     if (patch.title !== undefined) s.title = patch.title.trim().slice(0, 200);
     s.updatedAt = Date.now();
@@ -198,9 +270,18 @@ export class Application {
     }
     this.emit();
   }
-  async setDefault(model: ModelRef) {
+  async setDefault(model: ModelRef, thinkingLevel?: ThinkingLevel) {
     this.validModel(model);
+    const previous = this.store.get<ModelRef | null>("defaultModel", null);
+    const requested =
+      thinkingLevel ??
+      (previous && modelKey(previous) === modelKey(model)
+        ? this.store.get<ThinkingLevel>("defaultThinkingLevel", "off")
+        : undefined);
+    const level = this.resolveThinkingLevel(model, requested);
+    if (thinkingLevel) this.validThinkingLevel(model, thinkingLevel);
     this.store.set("defaultModel", model);
+    this.store.set("defaultThinkingLevel", level);
     this.emit();
   }
   setHidden(keys: string[], hidden: boolean) {
@@ -232,8 +313,16 @@ export class Application {
       await run.done;
     }
   }
-  async sendMessage(id: string, text: string, locale: string) {
+  async sendMessage(
+    id: string,
+    text: string,
+    locale: string,
+    images: ImageAttachment[] = [],
+  ) {
     const s = this.session(id);
+    text = text.trim();
+    if (!text && !images.length) throw new Error("Empty message");
+    if (images.length > 4) throw new Error("Too many images");
     if (this.runs.has(id)) throw new Error("Run active");
     if (this.runs.size >= 4)
       throw new Error(
@@ -244,6 +333,11 @@ export class Application {
         "Selecione um modelo nas preferências / Select a model in preferences",
       );
     this.validModel(s.model);
+    this.validThinkingLevel(s.model, s.thinkingLevel);
+    if (images.length && !this.modelDescriptor(s.model)?.input.includes("image"))
+      throw new Error(
+        "Este modelo não aceita imagens / This model does not accept images",
+      );
     const workspace = this.store
       .workspaces()
       .find((w) => w.id === s.workspaceId);
@@ -260,15 +354,18 @@ export class Application {
       id: randomUUID(),
       role: "user",
       text,
+      ...(images.length ? { images } : {}),
       createdAt: Date.now(),
     });
-    if (!s.title) s.title = text.replace(/\s+/g, " ").slice(0, 80);
+    if (!s.title)
+      s.title =
+        text.replace(/\s+/g, " ").slice(0, 80) || images[0]?.name || "Imagem";
     s.status = "running";
     s.error = undefined;
     s.updatedAt = Date.now();
     this.save(s, runId);
     const history = this.store.transcript(id);
-    history.push(this.llm.user(text));
+    history.push(this.llm.user(text, images));
     this.store.saveTranscript(id, history);
     this.store.db
       .prepare("INSERT INTO runs VALUES(?,?,?, ?,NULL)")
@@ -327,6 +424,7 @@ export class Application {
           history,
           signal,
           s.id,
+          s.thinkingLevel,
           (text) => {
             message.text = text;
             checkpoint();

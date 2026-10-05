@@ -3,6 +3,8 @@ import type {
   ModelDescriptor,
   ProviderDescriptor,
   Usage,
+  ThinkingLevel,
+  ImageAttachment,
 } from "../src/shared/protocol.js";
 export interface Interaction {
   signal: AbortSignal;
@@ -47,7 +49,7 @@ export interface LLMService {
   logout(id: string): Promise<void>;
   refresh(): Promise<void>;
   recover(history: unknown[]): unknown[];
-  user(text: string): unknown;
+  user(text: string, images?: ImageAttachment[]): unknown;
   tool(call: ToolCall, text: string, isError: boolean): unknown;
   stream(
     model: ModelRef,
@@ -55,6 +57,7 @@ export interface LLMService {
     history: unknown[],
     signal: AbortSignal,
     sessionId: string,
+    thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
   ): Promise<Turn>;
   complete(
@@ -63,6 +66,7 @@ export interface LLMService {
     history: unknown[],
     signal: AbortSignal,
     sessionId: string,
+    thinkingLevel: ThinkingLevel,
   ): Promise<Turn>;
   cleanup(id: string): void;
 }

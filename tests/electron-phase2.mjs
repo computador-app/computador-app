@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron, expect } from "@playwright/test";
@@ -53,6 +53,12 @@ try {
   await expect(
     page.getByRole("button", { name: "Modelo padrão", exact: true }),
   ).toHaveText("Test provider · Fast");
+  await expect(
+    page.getByRole("combobox", {
+      name: "Nível de pensamento padrão",
+      exact: true,
+    }),
+  ).toHaveValue("off");
   await page
     .getByRole("switch", { name: "Mostrar Fast", exact: true })
     .uncheck();
@@ -69,6 +75,17 @@ try {
   await expect(
     page.getByRole("button", { name: "Modelo", exact: true }),
   ).toHaveText("Test provider · Fast");
+  await expect(
+    page.getByRole("combobox", {
+      name: "Nível de pensamento",
+      exact: true,
+    }),
+  ).toHaveValue("off");
+  await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Adicionar imagem", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Modelo", exact: true }).click();
   await page
     .getByRole("menuitem", { name: "Test provider", exact: true })
@@ -81,6 +98,21 @@ try {
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Adicionar", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page
+    .getByRole("menuitem", { name: "Adicionar imagem", exact: true })
+    .click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({
+    name: "pixel.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await expect(page.locator(".composer-attachment")).toContainText("pixel.png");
   await page.locator(".composer textarea").fill("tools");
   await page
     .getByRole("button", { name: "Enviar mensagem", exact: true })
@@ -93,6 +125,7 @@ try {
     "hello",
   );
   await expect(page.locator(".tool-card")).toHaveCount(3);
+  await expect(page.locator(".message-images img")).toHaveCount(1);
   const originalId = await page.evaluate(
     async () => (await window.desktop.backend.snapshot()).activeSessionId,
   );
@@ -142,7 +175,7 @@ try {
   );
   await expect(page.locator(".tool-card")).toHaveCount(3);
   const snapshot = await page.evaluate(() => window.desktop.backend.snapshot());
-  assert.equal(snapshot.workspace.path, project);
+  assert.equal(snapshot.workspace.path, await realpath(project));
   assert.equal(snapshot.defaultModel.modelId, "fast");
   assert.ok(snapshot.hiddenModels.includes(JSON.stringify(["test", "fast"])));
   assert.ok(!JSON.stringify(snapshot).includes("secret-test-key"));

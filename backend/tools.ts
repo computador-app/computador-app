@@ -84,6 +84,7 @@ export class HostRuntime {
     }
   }
   async list(input = ".", signal?: AbortSignal) {
+    const root = await fs.realpath(this.root);
     const base = await this.resolve(input);
     const paths: string[] = [];
     let bytes = 0;
@@ -99,7 +100,7 @@ export class HostRuntime {
         if (entry.isDirectory()) await walk(target, depth + 1);
         else if (entry.isFile()) {
           const relative = path
-            .relative(this.root, target)
+            .relative(root, target)
             .split(path.sep)
             .join("/");
           paths.push(relative);

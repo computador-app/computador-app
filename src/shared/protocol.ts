@@ -2,11 +2,26 @@ export interface ModelRef {
   provider: string;
   modelId: string;
 }
+export type ThinkingLevel =
+  | "off"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
 export const modelKey = (ref: ModelRef) =>
   JSON.stringify([ref.provider, ref.modelId]);
 export interface ModelDescriptor extends ModelRef {
   name: string;
   contextWindow: number;
+  input: ("text" | "image")[];
+  thinkingLevels: ThinkingLevel[];
+}
+export interface ImageAttachment {
+  name: string;
+  data: string;
+  mimeType: string;
 }
 export interface ProviderDescriptor {
   id: string;
@@ -49,6 +64,7 @@ export interface ChatMessage {
   incomplete?: boolean;
   model?: ModelRef;
   usage?: Usage;
+  images?: ImageAttachment[];
   tool?: {
     id: string;
     name: string;
@@ -62,6 +78,7 @@ export interface ChatSession {
   workspaceId: string;
   title: string;
   model: ModelRef | null;
+  thinkingLevel: ThinkingLevel;
   messages: ChatMessage[];
   status:
     "idle" | "running" | "completed" | "failed" | "cancelled" | "interrupted";
@@ -77,6 +94,7 @@ export interface AppSnapshot {
   providers: ProviderDescriptor[];
   models: ModelDescriptor[];
   defaultModel: ModelRef | null;
+  defaultThinkingLevel: ThinkingLevel;
   hiddenModels: string[];
   auth: AuthState | null;
   secureStorage: boolean;
@@ -94,16 +112,25 @@ export interface BackendAPI {
   selectSession(id: string): Promise<void>;
   updateSession(
     id: string,
-    patch: { title?: string; model?: ModelRef },
+    patch: {
+      title?: string;
+      model?: ModelRef;
+      thinkingLevel?: ThinkingLevel;
+    },
   ): Promise<void>;
   deleteSession(id: string): Promise<void>;
-  sendMessage(id: string, text: string, locale: string): Promise<void>;
+  sendMessage(
+    id: string,
+    text: string,
+    locale: string,
+    images?: ImageAttachment[],
+  ): Promise<void>;
   cancelRun(id: string): Promise<void>;
   login(provider: string, method: "api_key" | "oauth"): Promise<void>;
   answerAuth(id: string, answer: string): Promise<void>;
   cancelAuth(): Promise<void>;
   removeProvider(id: string): Promise<void>;
-  setDefault(model: ModelRef): Promise<void>;
+  setDefault(model: ModelRef, thinkingLevel?: ThinkingLevel): Promise<void>;
   setHidden(keys: string[], hidden: boolean): Promise<void>;
   refreshModels(): Promise<void>;
   listFiles(): Promise<string[]>;

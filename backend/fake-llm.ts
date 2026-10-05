@@ -1,5 +1,9 @@
 import type { LLMService, Interaction, ToolCall, Turn } from "./llm.js";
-import type { ModelRef } from "../src/shared/protocol.js";
+import type {
+  ImageAttachment,
+  ModelRef,
+  ThinkingLevel,
+} from "../src/shared/protocol.js";
 import type { Store } from "./store.js";
 /** Deterministic Electron integration-test adapter. Never selected in production. */
 export class FakeLLMService implements LLMService {
@@ -28,12 +32,22 @@ export class FakeLLMService implements LLMService {
               modelId: "fast",
               name: "Fast",
               contextWindow: 32000,
+              input: ["text", "image"] as ("text" | "image")[],
+              thinkingLevels: ["off"] as ThinkingLevel[],
             },
             {
               provider: "test",
               modelId: "reasoning",
               name: "Reasoning",
               contextWindow: 32000,
+              input: ["text"] as ("text" | "image")[],
+              thinkingLevels: [
+                "off",
+                "minimal",
+                "low",
+                "medium",
+                "high",
+              ] as ThinkingLevel[],
             },
           ]
         : [],
@@ -63,8 +77,8 @@ export class FakeLLMService implements LLMService {
   recover(history: unknown[]) {
     return history;
   }
-  user(text: string) {
-    return { role: "user", text };
+  user(text: string, images: ImageAttachment[] = []) {
+    return { role: "user", text, images };
   }
   tool(call: ToolCall, text: string, isError: boolean) {
     return { role: "tool", call, text, isError };
@@ -75,6 +89,7 @@ export class FakeLLMService implements LLMService {
     history: unknown[],
     signal: AbortSignal,
     _id: string,
+    _thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
   ): Promise<Turn> {
     const last = history.at(-1) as { role?: string; text?: string } | undefined;
@@ -117,8 +132,17 @@ export class FakeLLMService implements LLMService {
     history: unknown[],
     signal: AbortSignal,
     id: string,
+    thinkingLevel: ThinkingLevel,
   ) {
-    return this.stream(model, system, history, signal, id, () => {});
+    return this.stream(
+      model,
+      system,
+      history,
+      signal,
+      id,
+      thinkingLevel,
+      () => {},
+    );
   }
   cleanup() {}
 }
