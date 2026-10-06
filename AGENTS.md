@@ -20,6 +20,7 @@ Este repositório contém um aplicativo desktop Electron com frontend React/Vite
 - A tag da GitHub Release não precisa coincidir com `package.json`; a versão interna e o nome dos instaladores são derivados do `package.json` do commit marcado.
 - Preserve os alvos de distribuição: Windows x64/NSIS, macOS ARM64 e x64/DMG, Linux x64/DEB e RPM.
 - Preserve o smoke test do aplicativo empacotado em todos os jobs de plataforma.
+- No macOS, preserve a verificação estrita com `codesign`; builds sem certificado devem receber assinatura ad-hoc completa, e builds públicos sem alerta do Gatekeeper exigem Developer ID e notarização.
 - Nunca versione `dist/`, `dist-electron/`, `release/`, resultados de testes, certificados ou credenciais de assinatura.
 - Os jobs de empacotamento devem terminar antes que qualquer binário seja anexado à Release, evitando publicações parciais.
 

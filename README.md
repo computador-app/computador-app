@@ -82,6 +82,8 @@ Cada job abre e valida o aplicativo empacotado antes de disponibilizar o instala
 
 O workflow aceita qualquer tag de release. Os nomes e a versão interna dos instaladores continuam sendo derivados da versão registrada no `package.json` do commit marcado.
 
-Os artefatos são gerados sem assinatura quando os secrets de certificado não estão configurados. Para assinar e notarizar o macOS, configure `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` e `APPLE_TEAM_ID`. Para assinar o Windows, configure `WIN_CSC_LINK` e `WIN_CSC_KEY_PASSWORD`. Certificados e senhas nunca devem ser adicionados ao repositório.
+Sem certificados configurados, os aplicativos macOS recebem uma assinatura ad-hoc completa e passam pela verificação de integridade do `codesign`. Como o Gatekeeper não reconhece uma assinatura ad-hoc como identidade confiável, o usuário ainda precisa autorizar a primeira abertura em **Ajustes do Sistema → Privacidade e Segurança → Abrir Mesmo Assim**.
+
+Para distribuir o aplicativo sem esse alerta, configure um certificado **Developer ID Application** e a notarização com `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` e `APPLE_TEAM_ID`. Para assinar o Windows, configure `WIN_CSC_LINK` e `WIN_CSC_KEY_PASSWORD`. Certificados e senhas nunca devem ser adicionados ao repositório.
 
 Para validar o empacotamento localmente, use `npm run package` (diretório descompactado) ou `npm run dist` (instalador da plataforma atual). As saídas ficam em `release/` e não devem ser commitadas.

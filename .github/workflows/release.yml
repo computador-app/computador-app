@@ -62,9 +62,11 @@ jobs:
           - name: ARM64
             runner: macos-15
             arch: arm64
+            app_dir: mac-arm64
           - name: Intel x64
             runner: macos-15-intel
             arch: x64
+            app_dir: mac
 
     steps:
       - name: Baixar o código da release
@@ -97,13 +99,19 @@ jobs:
             export CSC_KEY_PASSWORD="$MAC_CSC_KEY_PASSWORD"
           else
             export CSC_IDENTITY_AUTO_DISCOVERY=false
+            MAC_SIGNING_ARGS=(--config.mac.identity=- --config.mac.hardenedRuntime=false)
           fi
           if [[ -n "$MAC_APPLE_ID" && -n "$MAC_APPLE_APP_SPECIFIC_PASSWORD" && -n "$MAC_APPLE_TEAM_ID" ]]; then
             export APPLE_ID="$MAC_APPLE_ID"
             export APPLE_APP_SPECIFIC_PASSWORD="$MAC_APPLE_APP_SPECIFIC_PASSWORD"
             export APPLE_TEAM_ID="$MAC_APPLE_TEAM_ID"
           fi
-          npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+          npx electron-builder --mac dmg --${{ matrix.arch }} --publish never "${MAC_SIGNING_ARGS[@]}"
+
+      - name: Validar assinatura do aplicativo
+        run: >-
+          codesign --verify --deep --strict --verbose=2
+          "release/${{ matrix.app_dir }}/Computador.app"
 
       - name: Validar aplicativo empacotado
         run: npm run test:packaged
