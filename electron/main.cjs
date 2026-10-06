@@ -31,7 +31,7 @@ app.on("second-instance", () => {
 });
 app.setAboutPanelOptions({
   applicationName: "Computador",
-  applicationVersion: "0.2.0",
+  applicationVersion: app.getVersion(),
   comments: "Computador · Agente de projetos",
 });
 let mainWindow;

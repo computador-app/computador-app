@@ -14,7 +14,7 @@ O [harness-architecture.md](harness-architecture.md) permanece preservado como h
 
 ## Executar
 
-Requer Node.js 22.19+ e npm. Em Linux, Electron precisa de uma sessão gráfica e das bibliotecas do sistema para Chromium.
+Requer Node.js 22.22.2+ e npm. Em Linux, Electron precisa de uma sessão gráfica e das bibliotecas do sistema para Chromium.
 
 ```bash
 npm ci
@@ -61,3 +61,19 @@ npm run test:electron
 `check` executa TypeScript, build, testes unitários e E2E de navegador. Os testes de Electron precisam de ambiente gráfico (ou Xvfb no CI) e validam isolamento, menus, clipboard e o fluxo completo de chat/provedores com backend falso determinístico. Não exigem chaves nem contas externas.
 
 Detalhes de arquitetura, contratos e limites: [Primeira versão do frontend](docs/Frontend/Primeira-versao.md).
+
+## CI e releases
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada abertura, reabertura ou atualização de um pull request. Ele executa o build, a checagem de tipos, os testes unitários, os testes E2E do navegador e os testes de integração do Electron em uma sessão Xvfb.
+
+Ao publicar uma GitHub Release, [`.github/workflows/release.yml`](.github/workflows/release.yml) gera e anexa automaticamente:
+
+- instalador NSIS para Windows x64 (`.exe`);
+- imagens para macOS ARM64 e Intel x64 (`.dmg`);
+- pacotes Linux x64 para Debian/Ubuntu (`.deb`) e Fedora/RHEL/openSUSE (`.rpm`).
+
+A tag da release deve ter a mesma versão de `package.json`, com ou sem o prefixo `v`; por exemplo, a versão `0.2.0` usa a tag `v0.2.0`. Uma divergência interrompe o workflow antes do empacotamento.
+
+Os artefatos são gerados sem assinatura quando os secrets de certificado não estão configurados. Para assinar e notarizar o macOS, configure `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` e `APPLE_TEAM_ID`. Para assinar o Windows, configure `WIN_CSC_LINK` e `WIN_CSC_KEY_PASSWORD`. Certificados e senhas nunca devem ser adicionados ao repositório.
+
+Para validar o empacotamento localmente, use `npm run package` (diretório descompactado) ou `npm run dist` (instalador da plataforma atual). As saídas ficam em `release/` e não devem ser commitadas.

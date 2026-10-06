@@ -1,0 +1,181 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validar versão
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Baixar o código da release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Conferir tag e package.json
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: >-
+          node -e "const pkg = require('./package.json');
+          const tag = process.env.RELEASE_TAG.replace(/^v/, '');
+          if (tag !== pkg.version) {
+            console.error('A tag ' + process.env.RELEASE_TAG + ' não corresponde à versão ' + pkg.version + ' de package.json.');
+            process.exit(1);
+          }"
+
+  windows:
+    name: Windows x64
+    needs: validate
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar o código da release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Compilar a aplicação
+        run: npm run build
+
+      - name: Gerar instalador
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: npx electron-builder --win nsis --x64 --publish never
+
+      - name: Guardar instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x64
+          path: release/*.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS ${{ matrix.name }}
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ARM64
+            runner: macos-15
+            arch: arm64
+          - name: Intel x64
+            runner: macos-15-intel
+            arch: x64
+
+    steps:
+      - name: Baixar o código da release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Compilar a aplicação
+        run: npm run build
+
+      - name: Gerar imagem de instalação
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+
+      - name: Guardar imagem
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-${{ matrix.arch }}
+          path: release/*.dmg
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar o código da release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Compilar a aplicação
+        run: npm run build
+
+      - name: Gerar pacotes
+        run: npx electron-builder --linux deb rpm --x64 --publish never
+
+      - name: Guardar pacotes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-x64
+          path: |
+            release/*.deb
+            release/*.rpm
+          if-no-files-found: error
+
+  publish:
+    name: Anexar artefatos à release
+    needs: [windows, macos, linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Baixar todos os artefatos
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Anexar artefatos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" release-assets/* --clobber
