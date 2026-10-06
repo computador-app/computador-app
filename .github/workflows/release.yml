@@ -64,6 +64,9 @@ jobs:
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npx electron-builder --win nsis --x64 --publish never
 
+      - name: Validar aplicativo empacotado
+        run: npm run test:packaged
+
       - name: Guardar instalador
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +118,9 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
 
+      - name: Validar aplicativo empacotado
+        run: npm run test:packaged
+
       - name: Guardar imagem
         uses: actions/upload-artifact@v4
         with:
@@ -143,11 +149,17 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      - name: Instalar bibliotecas gráficas
+        run: npx playwright install-deps chromium
+
       - name: Compilar a aplicação
         run: npm run build
 
       - name: Gerar pacotes
         run: npx electron-builder --linux deb rpm --x64 --publish never
+
+      - name: Validar aplicativo empacotado
+        run: xvfb-run --auto-servernum npm run test:packaged
 
       - name: Guardar pacotes
         uses: actions/upload-artifact@v4

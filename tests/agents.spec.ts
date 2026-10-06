@@ -10,7 +10,15 @@ test("agents settings provide a temporary browser preview", async ({ page }) => 
   await settings
     .getByRole("button", { name: "Novo agente temporário · Usuário" })
     .click();
-  await expect(settings.locator(".agent-preview-list > div")).toHaveCount(before + 1);
+  const agents = settings.locator(".agent-preview-list > div");
+  await expect(agents).toHaveCount(before + 1);
+  const created = agents.last();
+  const name = created.getByRole("textbox").first();
+  await expect(name).toHaveValue("Novo agente");
+  await name.fill("Agente de revisão");
+  await expect(name).toHaveValue("Agente de revisão");
+  await created.getByRole("button", { name: "Excluir", exact: true }).click();
+  await expect(agents).toHaveCount(before);
 });
 
 test("subagent is a dockable panel available from View", async ({ page }) => {

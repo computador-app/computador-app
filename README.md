@@ -56,21 +56,29 @@ Detalhes: [Fase 2 implementada](docs/Backend/Fase-2-implementada.md).
 npx playwright install chromium
 npm run check
 npm run test:electron
+npm run package
+npm run test:packaged
 ```
 
-`check` executa TypeScript, build, testes unitários e E2E de navegador. Os testes de Electron precisam de ambiente gráfico (ou Xvfb no CI) e validam isolamento, menus, clipboard e o fluxo completo de chat/provedores com backend falso determinístico. Não exigem chaves nem contas externas.
+`check` executa TypeScript, build, cobertura unitária do frontend e backend e E2E de navegador. A cobertura é uma barreira do CI: o frontend exige no mínimo 33% de linhas/statements, 23% de branches e 28% de functions; o backend exige 80% de linhas e 70% de branches/functions. O relatório HTML do frontend fica em `coverage/frontend/` e é publicado como artefato do workflow.
+
+Os E2E de navegador incluem regressão visual do catálogo de modelos nos temas escuro e claro. Para aceitar uma alteração visual intencional, revise os diffs e execute `npm run test:e2e -- --update-snapshots`; os PNGs de referência em `tests/visual.spec.ts-snapshots/` devem ser versionados.
+
+Os testes de Electron ficam separados por responsabilidade em `tests-electron/` e precisam de ambiente gráfico (ou Xvfb no CI). Eles validam isolamento, menus, clipboard, agentes, persistência, provedores, modelos, imagens, ferramentas e cancelamento com backend falso determinístico. Não exigem chaves nem contas externas. Depois de `npm run package` ou `npm run dist`, `npm run test:packaged` abre o executável gerado e confere inicialização, janela e versão.
 
 Detalhes de arquitetura, contratos e limites: [Primeira versão do frontend](docs/Frontend/Primeira-versao.md).
 
 ## CI e releases
 
-O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada abertura, reabertura ou atualização de um pull request. Ele executa o build, a checagem de tipos, os testes unitários, os testes E2E do navegador e os testes de integração do Electron em uma sessão Xvfb.
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda a cada abertura, reabertura ou atualização de um pull request. Ele executa o build, a checagem de tipos, os testes com limites de cobertura, os E2E (incluindo snapshots visuais) e os testes de integração do Electron em uma sessão Xvfb. O relatório de cobertura é guardado mesmo quando um teste falha.
 
 Ao publicar uma GitHub Release, [`.github/workflows/release.yml`](.github/workflows/release.yml) gera e anexa automaticamente:
 
 - instalador NSIS para Windows x64 (`.exe`);
 - imagens para macOS ARM64 e Intel x64 (`.dmg`);
 - pacotes Linux x64 para Debian/Ubuntu (`.deb`) e Fedora/RHEL/openSUSE (`.rpm`).
+
+Cada job abre e valida o aplicativo empacotado antes de disponibilizar o instalador. A publicação só começa depois que Windows, as duas arquiteturas de macOS e Linux passam nesse smoke test, evitando anexar um artefato que foi gerado mas não inicializa.
 
 A tag da release deve ter a mesma versão de `package.json`, com ou sem o prefixo `v`; por exemplo, a versão `0.2.0` usa a tag `v0.2.0`. Uma divergência interrompe o workflow antes do empacotamento.
 
