@@ -13,6 +13,11 @@ test("font size changes reading text and terminal stays a mock", async ({
   await slider.fill("18");
   await page.getByRole("button", { name: "Concluído", exact: true }).click();
   await expect
+    .poll(() =>
+      page.evaluate(() => getComputedStyle(document.documentElement).fontSize),
+    )
+    .toBe("18px");
+  await expect
     .poll(() => message.evaluate((node) => getComputedStyle(node).fontSize))
     .not.toBe(before);
   await page

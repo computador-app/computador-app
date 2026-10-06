@@ -8,9 +8,13 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   timeout: 30_000,
-  expect: { timeout: 8_000 },
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',
+  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
+  expect: {
+    timeout: 8_000,
+    toHaveScreenshot: { animations: 'disabled', maxDiffPixelRatio: 0.08 },
+  },
   use: {
     baseURL,
     trace: 'retain-on-failure',

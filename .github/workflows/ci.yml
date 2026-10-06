@@ -33,8 +33,16 @@ jobs:
       - name: Instalar Chromium e dependências do sistema
         run: npx playwright install --with-deps chromium
 
-      - name: Rodar build, tipos, testes unitários e E2E
+      - name: Rodar build, tipos, cobertura e E2E
         run: npm run check
+
+      - name: Publicar relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: warn
 
       - name: Rodar testes de integração do Electron
         run: xvfb-run --auto-servernum npm run test:electron
