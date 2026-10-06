@@ -80,7 +80,7 @@ Ao publicar uma GitHub Release, [`.github/workflows/release.yml`](.github/workfl
 
 Cada job abre e valida o aplicativo empacotado antes de disponibilizar o instalador. A publicação só começa depois que Windows, as duas arquiteturas de macOS e Linux passam nesse smoke test, evitando anexar um artefato que foi gerado mas não inicializa.
 
-A tag da release deve ter a mesma versão de `package.json`, com ou sem o prefixo `v`; por exemplo, a versão `0.2.0` usa a tag `v0.2.0`. Uma divergência interrompe o workflow antes do empacotamento.
+O workflow aceita qualquer tag de release. Os nomes e a versão interna dos instaladores continuam sendo derivados da versão registrada no `package.json` do commit marcado.
 
 Os artefatos são gerados sem assinatura quando os secrets de certificado não estão configurados. Para assinar e notarizar o macOS, configure `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` e `APPLE_TEAM_ID`. Para assinar o Windows, configure `WIN_CSC_LINK` e `WIN_CSC_KEY_PASSWORD`. Certificados e senhas nunca devem ser adicionados ao repositório.
 

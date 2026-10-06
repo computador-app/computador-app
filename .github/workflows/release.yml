@@ -12,31 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validar versão
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Baixar o código da release
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
-
-      - name: Conferir tag e package.json
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: >-
-          node -e "const pkg = require('./package.json');
-          const tag = process.env.RELEASE_TAG.replace(/^v/, '');
-          if (tag !== pkg.version) {
-            console.error('A tag ' + process.env.RELEASE_TAG + ' não corresponde à versão ' + pkg.version + ' de package.json.');
-            process.exit(1);
-          }"
-
   windows:
     name: Windows x64
-    needs: validate
     runs-on: windows-latest
     timeout-minutes: 30
 
@@ -76,7 +53,6 @@ jobs:
 
   macos:
     name: macOS ${{ matrix.name }}
-    needs: validate
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     strategy:
@@ -141,7 +117,6 @@ jobs:
 
   linux:
     name: Linux x64
-    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

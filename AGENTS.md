@@ -17,7 +17,7 @@ Este repositório contém um aplicativo desktop Electron com frontend React/Vite
 ## CI e distribuição
 
 - Mantenha o workflow de PR sem secrets e compatível com contribuições vindas de forks.
-- A versão da tag da GitHub Release deve coincidir com `package.json`; aceite o prefixo opcional `v`.
+- A tag da GitHub Release não precisa coincidir com `package.json`; a versão interna e o nome dos instaladores são derivados do `package.json` do commit marcado.
 - Preserve os alvos de distribuição: Windows x64/NSIS, macOS ARM64 e x64/DMG, Linux x64/DEB e RPM.
 - Preserve o smoke test do aplicativo empacotado em todos os jobs de plataforma.
 - Nunca versione `dist/`, `dist-electron/`, `release/`, resultados de testes, certificados ou credenciais de assinatura.
