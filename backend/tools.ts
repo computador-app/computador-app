@@ -17,7 +17,17 @@ const object = (properties: Record<string, unknown>, required: string[]) => ({
   additionalProperties: false,
 });
 const string = { type: "string" };
-export const toolDefinitions = [
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, unknown>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+}
+export const toolDefinitions: ToolDefinition[] = [
   {
     name: "list_files",
     description:
@@ -55,6 +65,20 @@ export const toolDefinitions = [
     parameters: object({ command: string }, ["command"]),
   },
 ];
+export function delegationTool(description: string): ToolDefinition {
+  return {
+    name: "delegate_task",
+    description,
+    parameters: object(
+      {
+        task: string,
+        agent: string,
+        context: string,
+      },
+      ["task"],
+    ),
+  };
+}
 export class HostRuntime {
   constructor(readonly root: string) {}
   async resolve(input = ".", writing = false): Promise<string> {
@@ -84,6 +108,7 @@ export class HostRuntime {
     }
   }
   async list(input = ".", signal?: AbortSignal) {
+    const root = await fs.realpath(this.root);
     const base = await this.resolve(input);
     const paths: string[] = [];
     let bytes = 0;
@@ -99,7 +124,7 @@ export class HostRuntime {
         if (entry.isDirectory()) await walk(target, depth + 1);
         else if (entry.isFile()) {
           const relative = path
-            .relative(this.root, target)
+            .relative(root, target)
             .split(path.sep)
             .join("/");
           paths.push(relative);

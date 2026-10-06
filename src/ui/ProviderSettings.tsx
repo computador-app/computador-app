@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { useDomain } from "../domain/context";
 import { ModelVisibility } from "./ModelVisibility";
 import { LiveModelPicker } from "./LiveModelPicker";
+import {
+  preferredThinkingLevel,
+  ThinkingLevelSelector,
+} from "./ThinkingLevelSelector";
+import { modelKey } from "../shared/protocol";
 export function ProviderSettings({ tab }: { tab: "providers" | "models" }) {
   const { state, service, locale } = useDomain();
   const live = state.live;
@@ -43,6 +48,10 @@ export function ProviderSettings({ tab }: { tab: "providers" | "models" }) {
     `${p.name} ${p.id}`.toLowerCase().includes(query.toLowerCase()),
   );
   const chosen = live.providers.find((p) => p.id === selected);
+  const defaultDescriptor = live.defaultModel
+    ? live.models.find((model) => modelKey(model) === modelKey(live.defaultModel!))
+    : undefined;
+  const defaultThinkingLevels = defaultDescriptor?.thinkingLevels ?? ["off"];
   return (
     <div className="connection-settings">
       {error && (
@@ -225,9 +234,40 @@ export function ProviderSettings({ tab }: { tab: "providers" | "models" }) {
               value={live.defaultModel}
               label={pt ? "Modelo padrão" : "Default model"}
               disabled={busy}
-              onChange={(model) => void act(() => backend.setDefault(model))}
+              onChange={(model) => {
+                const levels =
+                  live.models.find((item) => modelKey(item) === modelKey(model))
+                    ?.thinkingLevels ?? [];
+                const level = preferredThinkingLevel(
+                  levels,
+                  live.defaultThinkingLevel,
+                );
+                void act(() => backend.setDefault(model, level));
+              }}
             />
           </div>
+          <label className="settings-field">
+            <span>
+              {pt
+                ? "Nível de pensamento padrão"
+                : "Default thinking level"}
+            </span>
+            <ThinkingLevelSelector
+              locale={locale}
+              label={
+                pt
+                  ? "Nível de pensamento padrão"
+                  : "Default thinking level"
+              }
+              value={live.defaultThinkingLevel}
+              levels={defaultThinkingLevels}
+              disabled={busy || !live.defaultModel}
+              onChange={(level) => {
+                if (live.defaultModel)
+                  void act(() => backend.setDefault(live.defaultModel!, level));
+              }}
+            />
+          </label>
           <ModelVisibility
             state={live}
             pt={pt}

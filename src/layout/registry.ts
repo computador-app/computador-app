@@ -7,6 +7,7 @@ import {
   ViewerPanel,
   MarkdownPanel,
   TerminalPanel,
+  SubagentPanel,
 } from "../panels";
 export interface PanelDefinition {
   id: string;
@@ -50,6 +51,12 @@ for (const definition of [
     title: "terminal",
     component: TerminalPanel,
     location: "below",
+  },
+  {
+    id: "subagent",
+    title: "subagent",
+    component: SubagentPanel,
+    location: "right",
   },
 ] satisfies PanelDefinition[])
   panels.register(definition);

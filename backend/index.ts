@@ -11,6 +11,8 @@ export async function createBackend(options: {
   encryption: Encryption;
   openFolder: () => Promise<string | undefined>;
   openExternal: (url: string) => Promise<void>;
+  home?: string;
+  trashItem?: (file: string) => Promise<void>;
   fake?: boolean;
 }) {
   await fs.mkdir(options.userData, { recursive: true });
@@ -21,6 +23,8 @@ export async function createBackend(options: {
     : new PiAILLMService(credentials, store);
   const application = new Application(store, llm, {
     ...options,
+    agentsDirectory: path.join(options.home ?? options.userData, ".computador", "agents"),
+    trashItem: options.trashItem,
     secureStorage: () => credentials.persistent,
   });
   await application.init();

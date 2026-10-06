@@ -1,15 +1,21 @@
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import {
   cleanupSessionResources,
+  getSupportedThinkingLevels,
   type Context,
   type Tool,
   type Message,
   type ModelsStoreEntry,
 } from "@earendil-works/pi-ai";
 import type { Credentials } from "./credentials.js";
-import type { ModelRef, ProviderDescriptor } from "../src/shared/protocol.js";
+import type {
+  ImageAttachment,
+  ModelRef,
+  ProviderDescriptor,
+  ThinkingLevel,
+} from "../src/shared/protocol.js";
 import type { LLMService, Interaction, ToolCall, Turn } from "./llm.js";
-import { toolDefinitions } from "./tools.js";
+import { toolDefinitions, type ToolDefinition } from "./tools.js";
 import type { Store } from "./store.js";
 export class PiAILLMService implements LLMService {
   private models;
@@ -118,6 +124,8 @@ export class PiAILLMService implements LLMService {
             modelId: m.id,
             name: m.name,
             contextWindow: m.contextWindow,
+            input: [...m.input],
+            thinkingLevels: getSupportedThinkingLevels(m),
           });
       }
     }
@@ -187,8 +195,21 @@ export class PiAILLMService implements LLMService {
     }
     return repaired;
   }
-  user(text: string) {
-    return { role: "user", content: text, timestamp: Date.now() };
+  user(text: string, images: ImageAttachment[] = []) {
+    return {
+      role: "user",
+      content: images.length
+        ? [
+            ...(text ? [{ type: "text" as const, text }] : []),
+            ...images.map(({ data, mimeType }) => ({
+              type: "image" as const,
+              data,
+              mimeType,
+            })),
+          ]
+        : text,
+      timestamp: Date.now(),
+    };
   }
   tool(call: ToolCall, text: string, isError: boolean) {
     return {
@@ -206,7 +227,9 @@ export class PiAILLMService implements LLMService {
     history: unknown[],
     signal: AbortSignal,
     sessionId: string,
+    thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
+    tools: ToolDefinition[] = toolDefinitions,
   ): Promise<Turn> {
     if (!this.enabled().has(ref.provider))
       throw new Error("Provedor desconectado / Provider disconnected");
@@ -215,13 +238,14 @@ export class PiAILLMService implements LLMService {
     const context: Context = {
       systemPrompt,
       messages: history as Message[],
-      tools: toolDefinitions as Tool[],
+      tools: tools as Tool[],
     };
     const stream = this.models.streamSimple(model, context, {
       signal,
       sessionId,
       maxRetries: 0,
       timeoutMs: 120000,
+      ...(thinkingLevel === "off" ? {} : { reasoning: thinkingLevel }),
     });
     let text = "";
     for await (const event of stream) {
@@ -269,8 +293,19 @@ export class PiAILLMService implements LLMService {
     history: unknown[],
     signal: AbortSignal,
     id: string,
+    thinkingLevel: ThinkingLevel,
+    tools: ToolDefinition[] = toolDefinitions,
   ) {
-    return this.stream(ref, system, history, signal, id, () => {});
+    return this.stream(
+      ref,
+      system,
+      history,
+      signal,
+      id,
+      thinkingLevel,
+      () => {},
+      tools,
+    );
   }
   cleanup(id: string) {
     cleanupSessionResources(id);

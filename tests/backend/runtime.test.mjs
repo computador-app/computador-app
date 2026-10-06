@@ -72,6 +72,65 @@ test("persistent sessions, tools, default snapshots and presentation-only exclus
     "reasoning",
   );
 });
+test("thinking levels and image inputs follow model capabilities", async (t) => {
+  const { app, store } = await fixture(t);
+  const reasoning = { provider: "test", modelId: "reasoning" };
+  await app.setDefault(reasoning, "high");
+  assert.equal(app.snapshot().defaultThinkingLevel, "high");
+  const reasoningSession = app.createSession();
+  assert.equal(
+    app.snapshot().sessions.find((s) => s.id === reasoningSession)
+      .thinkingLevel,
+    "high",
+  );
+  app.updateSession(reasoningSession, { thinkingLevel: "low" });
+  assert.equal(
+    app.snapshot().sessions.find((s) => s.id === reasoningSession)
+      .thinkingLevel,
+    "low",
+  );
+  assert.throws(
+    () => app.updateSession(reasoningSession, { thinkingLevel: "max" }),
+    /unavailable/i,
+  );
+
+  await app.setDefault(key, "off");
+  const imageSession = app.createSession();
+  const image = {
+    name: "pixel.png",
+    mimeType: "image/png",
+    data: "iVBORw0KGgo=",
+  };
+  await app.sendMessage(imageSession, "Describe", "en", [image]);
+  await finished(app, imageSession);
+  const saved = app.snapshot().sessions.find((s) => s.id === imageSession);
+  assert.deepEqual(saved.messages[0].images, [image]);
+  assert.deepEqual(store.transcript(imageSession)[0].images, [image]);
+
+  await assert.rejects(
+    app.sendMessage(reasoningSession, "Describe", "en", [image]),
+    /does not accept images/i,
+  );
+});
+test("sessions snapshot their agent and expose inspectable subagent runs", async (t) => {
+  const { app } = await fixture(t);
+  const id = app.createSession();
+  const before = app.snapshot().sessions.find((session) => session.id === id);
+  assert.equal(before.agentSnapshot, undefined);
+  await app.sendMessage(id, "delegate", "en");
+  await finished(app, id);
+  const snapshot = app.snapshot();
+  const session = snapshot.sessions.find((item) => item.id === id);
+  assert.equal(session.agentSnapshot.name, "Computador");
+  assert.equal(snapshot.subagentRuns.length, 1);
+  assert.equal(snapshot.subagentRuns[0].status, "completed");
+  assert.equal(snapshot.subagentRuns[0].messages[0].text, "child task");
+  assert.equal(
+    session.messages.find((message) => message.tool?.name === "delegate_task")
+      .tool.subagentRunId,
+    snapshot.subagentRuns[0].id,
+  );
+});
 test("cancel preserves partial output, switching sessions does not cancel, deletion cancels", async (t) => {
   const { app } = await fixture(t);
   const id = app.createSession();
@@ -239,7 +298,7 @@ test("workspace identity is canonical and session histories remain separate", as
   app.updateSession(first, { title: "First folder" });
   const other = path.join(dir, "other");
   await fs.mkdir(other);
-  const otherWorkspace = store.workspace(other, "other");
+  const otherWorkspace = store.workspace(await fs.realpath(other), "other");
   await app.openWorkspace(otherWorkspace.id);
   assert.equal(app.snapshot().activeSessionId, "");
   const second = app.createSession();
@@ -247,7 +306,10 @@ test("workspace identity is canonical and session histories remain separate", as
     app.snapshot().sessions.find((s) => s.id === first).workspaceId,
     app.snapshot().sessions.find((s) => s.id === second).workspaceId,
   );
-  const firstWorkspace = store.workspaces().find((w) => w.path === root);
+  const canonicalRoot = await fs.realpath(root);
+  const firstWorkspace = store.workspaces().find(
+    (w) => w.path === canonicalRoot,
+  );
   await app.openWorkspace(firstWorkspace.id);
   assert.equal(app.snapshot().activeSessionId, first);
   assert.equal(store.workspaces().length, 2);
@@ -303,6 +365,14 @@ test("adapter repairs dangling tool calls once and preserves opaque signatures",
   assert.equal(repaired[2].isError, true);
   assert.equal(repaired[0].content[0].thinkingSignature, "opaque");
   assert.deepEqual(llm.recover(repaired), repaired);
+  assert.deepEqual(llm.user("Describe", [{
+    name: "pixel.png",
+    mimeType: "image/png",
+    data: "iVBORw0KGgo=",
+  }]).content, [
+    { type: "text", text: "Describe" },
+    { type: "image", mimeType: "image/png", data: "iVBORw0KGgo=" },
+  ]);
 });
 test("cancelled queued credential mutations do not write, completed refresh rotations persist", async (t) => {
   const { store } = await fixture(t);

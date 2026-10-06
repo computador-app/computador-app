@@ -1,6 +1,6 @@
 ---
 tipo: guia
-status: planejado
+status: implementado-parcialmente
 origem: "harness-architecture.md; seções 7, 8, 9, 35, 36"
 ---
 
@@ -8,10 +8,29 @@ origem: "harness-architecture.md; seções 7, 8, 9, 35, 36"
 
 > **Atualização de 03/10/2026:** a [fase 2 implementada](Fase-2-implementada.md) entrega pi-ai real, SQLite, sessões por pasta e ferramentas locais sem pedidos de permissão. As seções abaixo preservam a arquitetura planejada; recursos além desse incremento continuam futuros.
 
+> **Atualização de 05/10/2026:** agentes YAML, snapshots por sessão, `delegate_task` síncrona, runs filhos persistidos, cancelamento em árvore e painel Subagente foram implementados. Delegação paralela, background após fechar o app e retomada continuam futuras.
+
+## Contrato implementado
+
+Agentes de usuário ficam em `~/.computador/agents`; agentes do projeto ativo ficam em `.computador/agents`. O arquivo mínimo é:
+
+```yaml
+version: 1
+id: personal
+name: Computador
+description: Agente pessoal para tarefas gerais.
+system_prompt: |
+  Você é o agente pessoal do usuário.
+```
+
+`model`, `thinking_level` e `runtime` são opcionais. O runtime aceita `max_delegation_depth`, `max_concurrent_subagents`, `max_turns`, `max_tool_calls` e `timeout_seconds`. Arquivos inválidos são diagnosticados e excluídos do catálogo executável. O app garante ao menos um agente de usuário válido.
+
+A tool `delegate_task` recebe `task`, `agent` opcional e `context` opcional. Sem `agent`, o filho usa um snapshot do chamador. Filhos recebem o mesmo workspace, mas não herdam automaticamente o histórico do pai.
+
 
 Todos os agentes compartilham o contrato de runtime, mas cada run mantém identidade, estado e limites próprios. Delegação cria um child run independente. Fechar um painel não cancela uma execução em background; sobrevivência ao encerramento do aplicativo não é uma garantia do MVP.
 
-> **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.
+> **Estado do projeto:** o fluxo síncrono local está implementado; as seções marcadas como futuras permanecem planejamento.
 
 ## 7. Agent Runtime
 

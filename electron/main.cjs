@@ -134,6 +134,11 @@ app.whenReady().then(async () => {
   dispatch = module.dispatch;
   backend = await module.createBackend({
     userData: app.getPath("userData"),
+    home:
+      process.env.NODE_ENV === "test"
+        ? app.getPath("userData")
+        : app.getPath("home"),
+    trashItem: (file) => shell.trashItem(file),
     fake:
       process.env.NODE_ENV === "test" &&
       process.env.COMPUTADOR_FAKE_LLM === "1",
