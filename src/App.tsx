@@ -122,6 +122,7 @@ const icons = {
   viewer: Code2,
   markdown: FileText,
   terminal: TerminalSquare,
+  subagent: GitBranch,
 };
 function Shell({
   preferences,
@@ -187,6 +188,16 @@ function Shell({
       "file.open": () => {
         controller.current?.open("viewer");
         controller.current?.open("markdown");
+      },
+      "subagent.open": (payload) => {
+        controller.current?.open("subagent");
+        const id = (payload as { id?: string } | undefined)?.id;
+        if (id)
+          requestAnimationFrame(() =>
+            window.dispatchEvent(
+              new CustomEvent("computador:subagent", { detail: { id } }),
+            ),
+          );
       },
       "layout.save": () =>
         setNotice(t(controller.current?.save() ? "saved" : "storageError")),

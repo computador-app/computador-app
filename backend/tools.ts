@@ -17,7 +17,17 @@ const object = (properties: Record<string, unknown>, required: string[]) => ({
   additionalProperties: false,
 });
 const string = { type: "string" };
-export const toolDefinitions = [
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, unknown>;
+    required: string[];
+    additionalProperties: boolean;
+  };
+}
+export const toolDefinitions: ToolDefinition[] = [
   {
     name: "list_files",
     description:
@@ -55,6 +65,20 @@ export const toolDefinitions = [
     parameters: object({ command: string }, ["command"]),
   },
 ];
+export function delegationTool(description: string): ToolDefinition {
+  return {
+    name: "delegate_task",
+    description,
+    parameters: object(
+      {
+        task: string,
+        agent: string,
+        context: string,
+      },
+      ["task"],
+    ),
+  };
+}
 export class HostRuntime {
   constructor(readonly root: string) {}
   async resolve(input = ".", writing = false): Promise<string> {

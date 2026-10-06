@@ -10,7 +10,14 @@ import {
 import { modelKey, type ImageAttachment } from "../shared/protocol";
 import { SafeMarkdown } from "./SafeMarkdown";
 export function LiveChatPanel() {
-  const { state, service, locale, newSession, openWorkspace } = useDomain();
+  const {
+    state,
+    service,
+    locale,
+    newSession,
+    openWorkspace,
+    openSubagent,
+  } = useDomain();
   const live = state.live!;
   const backend = service.backend!;
   const pt = locale === "pt-BR";
@@ -30,6 +37,10 @@ export function LiveChatPanel() {
       )
     : undefined;
   const supportsImages = selectedModel?.input.includes("image") ?? false;
+  const agentRecord = session
+    ? live.agents.find((agent) => agent.ref === session.agentRef)
+    : undefined;
+  const agentName = session?.agentSnapshot?.name ?? agentRecord?.name ?? "Computador";
   const setDraft = (text: string) => {
     if (session) setDrafts((prev) => ({ ...prev, [session.id]: text }));
   };
@@ -116,6 +127,47 @@ export function LiveChatPanel() {
           <strong>
             {session.title || (pt ? "Nova conversa" : "New conversation")}
           </strong>
+          <div className="chat-agent-select">
+            {!session.messages.length && !session.agentSnapshot ? (
+              <select
+                aria-label={pt ? "Agente da conversa" : "Conversation agent"}
+                value={session.agentRef}
+                disabled={busy || sending}
+                onChange={(event) =>
+                  void act(() =>
+                    backend.updateSession(session.id, {
+                      agentRef: event.target.value as typeof session.agentRef,
+                    }),
+                  )
+                }
+              >
+                {(["user", "project"] as const).map((scope) => (
+                  <optgroup
+                    key={scope}
+                    label={
+                      scope === "user"
+                        ? pt
+                          ? "Usuário"
+                          : "User"
+                        : pt
+                          ? "Projeto"
+                          : "Project"
+                    }
+                  >
+                    {live.agents
+                      .filter((agent) => agent.scope === scope)
+                      .map((agent) => (
+                        <option key={agent.ref} value={agent.ref}>
+                          {agent.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            ) : (
+              <small>{agentName}</small>
+            )}
+          </div>
         </div>
         <span
           className={`run-pill ${session.status}`}
@@ -147,16 +199,25 @@ export function LiveChatPanel() {
               </summary>
               <pre>{JSON.stringify(m.tool.arguments, null, 2)}</pre>
               <pre>{m.tool.result ?? "…"}</pre>
+              {m.tool.subagentRunId && (
+                <button
+                  type="button"
+                  className="open-subagent"
+                  onClick={() => openSubagent(m.tool!.subagentRunId!)}
+                >
+                  {pt ? "Abrir no painel Subagente" : "Open in Subagent panel"}
+                </button>
+              )}
             </details>
           ) : (
             <article key={m.id} className={`chat-message ${m.role}`}>
               <div className={`message-avatar ${m.role}`}>
-                {m.role === "user" ? "M" : "✳"}
+                {m.role === "user" ? "M" : agentName.slice(0, 2).toUpperCase()}
               </div>
               <div className="message-content">
                 <header>
                   <strong>
-                    {m.role === "user" ? (pt ? "Você" : "You") : "Computador"}
+                    {m.role === "user" ? (pt ? "Você" : "You") : agentName}
                   </strong>
                   {m.model && (
                     <span>
@@ -206,6 +267,9 @@ export function LiveChatPanel() {
           <div role="alert" className="error-card">
             {error || session.error}
           </div>
+        )}
+        {session.modelNotice && (
+          <div className="settings-note">{session.modelNotice}</div>
         )}
         <div ref={end} />
       </div>
@@ -281,7 +345,7 @@ export function LiveChatPanel() {
                   }
                 />
               )}
-              <span>Computador</span>
+              <span>{agentName}</span>
               <LiveModelPicker
                 state={live}
                 value={session.model}

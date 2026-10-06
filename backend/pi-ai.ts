@@ -15,7 +15,7 @@ import type {
   ThinkingLevel,
 } from "../src/shared/protocol.js";
 import type { LLMService, Interaction, ToolCall, Turn } from "./llm.js";
-import { toolDefinitions } from "./tools.js";
+import { toolDefinitions, type ToolDefinition } from "./tools.js";
 import type { Store } from "./store.js";
 export class PiAILLMService implements LLMService {
   private models;
@@ -229,6 +229,7 @@ export class PiAILLMService implements LLMService {
     sessionId: string,
     thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
+    tools: ToolDefinition[] = toolDefinitions,
   ): Promise<Turn> {
     if (!this.enabled().has(ref.provider))
       throw new Error("Provedor desconectado / Provider disconnected");
@@ -237,7 +238,7 @@ export class PiAILLMService implements LLMService {
     const context: Context = {
       systemPrompt,
       messages: history as Message[],
-      tools: toolDefinitions as Tool[],
+      tools: tools as Tool[],
     };
     const stream = this.models.streamSimple(model, context, {
       signal,
@@ -293,6 +294,7 @@ export class PiAILLMService implements LLMService {
     signal: AbortSignal,
     id: string,
     thinkingLevel: ThinkingLevel,
+    tools: ToolDefinition[] = toolDefinitions,
   ) {
     return this.stream(
       ref,
@@ -302,6 +304,7 @@ export class PiAILLMService implements LLMService {
       id,
       thinkingLevel,
       () => {},
+      tools,
     );
   }
   cleanup(id: string) {

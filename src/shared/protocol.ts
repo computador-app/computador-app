@@ -2,6 +2,38 @@ export interface ModelRef {
   provider: string;
   modelId: string;
 }
+export type AgentScope = "user" | "project";
+export type AgentRef = `${AgentScope}:${string}`;
+export interface AgentRuntimeConfig {
+  maxDelegationDepth?: number;
+  maxConcurrentSubagents?: number;
+  maxTurns?: number;
+  maxToolCalls?: number;
+  timeoutSeconds?: number;
+}
+export interface AgentDefinition {
+  version: 1;
+  id: string;
+  name: string;
+  description: string;
+  model?: ModelRef;
+  thinkingLevel?: ThinkingLevel;
+  systemPrompt: string;
+  runtime?: AgentRuntimeConfig;
+}
+export interface AgentRecord extends AgentDefinition {
+  ref: AgentRef;
+  scope: AgentScope;
+  path: string;
+  revision: string;
+  isDefault: boolean;
+  modelAvailable: boolean;
+}
+export interface AgentProblem {
+  scope: AgentScope;
+  path: string;
+  error: string;
+}
 export type ThinkingLevel =
   | "off"
   | "minimal"
@@ -71,12 +103,17 @@ export interface ChatMessage {
     arguments: Record<string, unknown>;
     status: "running" | "completed" | "failed";
     result?: string;
+    subagentRunId?: string;
   };
 }
 export interface ChatSession {
   id: string;
   workspaceId: string;
   title: string;
+  agentRef: AgentRef;
+  agentSnapshot?: AgentDefinition;
+  modelNotice?: string;
+  modelOverridden?: boolean;
   model: ModelRef | null;
   thinkingLevel: ThinkingLevel;
   messages: ChatMessage[];
@@ -84,6 +121,24 @@ export interface ChatSession {
     "idle" | "running" | "completed" | "failed" | "cancelled" | "interrupted";
   error?: string;
   updatedAt: number;
+}
+export interface SubagentRun {
+  id: string;
+  sessionId: string;
+  parentRunId: string;
+  parentSubagentRunId?: string;
+  agentRef: AgentRef;
+  agentName: string;
+  depth: number;
+  task: string;
+  context?: string;
+  model: ModelRef;
+  thinkingLevel: ThinkingLevel;
+  status: "running" | "completed" | "failed" | "cancelled" | "interrupted";
+  error?: string;
+  messages: ChatMessage[];
+  startedAt: number;
+  endedAt?: number;
 }
 export interface AppSnapshot {
   revision: number;
@@ -98,6 +153,10 @@ export interface AppSnapshot {
   hiddenModels: string[];
   auth: AuthState | null;
   secureStorage: boolean;
+  agents: AgentRecord[];
+  agentProblems: AgentProblem[];
+  defaultAgentRef: AgentRef;
+  subagentRuns: SubagentRun[];
 }
 export interface RuntimeEvent {
   sequence: number;
@@ -116,6 +175,7 @@ export interface BackendAPI {
       title?: string;
       model?: ModelRef;
       thinkingLevel?: ThinkingLevel;
+      agentRef?: AgentRef;
     },
   ): Promise<void>;
   deleteSession(id: string): Promise<void>;
@@ -133,6 +193,14 @@ export interface BackendAPI {
   setDefault(model: ModelRef, thinkingLevel?: ThinkingLevel): Promise<void>;
   setHidden(keys: string[], hidden: boolean): Promise<void>;
   refreshModels(): Promise<void>;
+  saveAgent(input: {
+    scope: AgentScope;
+    definition: AgentDefinition;
+    expectedRevision?: string;
+  }): Promise<void>;
+  deleteAgent(ref: AgentRef): Promise<void>;
+  setDefaultAgent(ref: AgentRef): Promise<void>;
+  cancelSubagent(id: string): Promise<void>;
   listFiles(): Promise<string[]>;
   readFile(path: string): Promise<string>;
   onEvent(callback: (event: RuntimeEvent) => void): () => void;

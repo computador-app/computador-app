@@ -94,3 +94,48 @@
 .visibility-model > span { display: grid; gap: 4px; min-width: 0; }
 .visibility-model strong { font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
 .visibility-model small { font-size: 10px; color: var(--muted); overflow-wrap: anywhere; }
+.agent-settings { min-width: 0; }
+.agent-editor-layout { display: grid; grid-template-columns: minmax(190px, 260px) minmax(340px, 1fr); min-height: 520px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.agent-list { padding: 12px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--surface2); }
+.agent-list section + section { margin-top: 18px; }
+.agent-list section > header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 7px; }
+.agent-list section > header strong { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.agent-list section > header button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 5px; }
+.agent-list section > button { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 7px; text-align: left; padding: 10px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text); }
+.agent-list section > button.selected { border-color: var(--border); background: var(--accent-soft); }
+.agent-list section > button span { min-width: 0; display: grid; gap: 4px; }
+.agent-list section > button strong { font-size: 12px; }
+.agent-list section > button small, .agent-list section > small, .agent-problems small { color: var(--muted); font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.agent-list section > button em { color: var(--accent); font-size: 9px; font-style: normal; }
+.agent-problems > div { padding: 8px; display: grid; gap: 4px; }
+.agent-problems > div strong { font-size: 10px; color: #f48c96; }
+.agent-form { padding: 20px; overflow-y: auto; min-width: 0; }
+.agent-form-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.agent-form-heading > div:first-child { display: grid; gap: 5px; min-width: 0; }
+.agent-form-heading small { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.agent-form-heading > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.agent-form button, .agent-preview-list button { padding: 7px 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); border-radius: 6px; }
+.agent-form button.danger { color: #f48c96; }
+.agent-form > label, .agent-form-grid label { display: grid; gap: 7px; margin: 14px 0; font-size: 11px; color: var(--muted); }
+.agent-form input, .agent-form textarea, .agent-form select { width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.agent-form input[readonly] { opacity: .7; }
+.agent-form textarea { resize: vertical; line-height: 1.5; }
+.agent-form .agent-prompt { min-height: 190px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.agent-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.agent-runtime { margin: 18px 0; border: 1px solid var(--border); border-radius: 7px; padding: 12px; }
+.agent-runtime summary { cursor: pointer; font-size: 12px; }
+.agent-form-actions { display: flex; justify-content: flex-end; }
+.agent-form-actions button { background: var(--accent); color: white; border-color: transparent; }
+.agent-form button:disabled, .agent-list button:disabled { opacity: .45; cursor: default; }
+.agent-preview-list { display: grid; gap: 8px; }
+.agent-preview-list > div { padding: 12px; border: 1px solid var(--border); border-radius: 7px; display: grid; gap: 8px; }
+.agent-preview-list input, .agent-preview-list textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid var(--border); border-radius: 5px; color: var(--text); background: var(--bg); font: inherit; }
+.agent-preview-list p { color: var(--muted); margin: 5px 0 0; }
+@media (max-width: 900px) {
+  .agent-editor-layout { grid-template-columns: 1fr; }
+  .agent-list { border-right: 0; border-bottom: 1px solid var(--border); max-height: 260px; }
+}
+@media (max-width: 600px) {
+  .agent-form-grid { grid-template-columns: 1fr; gap: 0; }
+  .agent-form-heading { flex-direction: column; }
+}

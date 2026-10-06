@@ -6,6 +6,7 @@ import type {
   ThinkingLevel,
   ImageAttachment,
 } from "../src/shared/protocol.js";
+import type { ToolDefinition } from "./tools.js";
 export interface Interaction {
   signal: AbortSignal;
   prompt(prompt: {
@@ -59,6 +60,7 @@ export interface LLMService {
     sessionId: string,
     thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
+    tools?: ToolDefinition[],
   ): Promise<Turn>;
   complete(
     model: ModelRef,
@@ -67,6 +69,7 @@ export interface LLMService {
     signal: AbortSignal,
     sessionId: string,
     thinkingLevel: ThinkingLevel,
+    tools?: ToolDefinition[],
   ): Promise<Turn>;
   cleanup(id: string): void;
 }

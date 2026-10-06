@@ -38,11 +38,13 @@ Para executar o build local no Electron: `npm run build` seguido de `npm start`.
 - Preferências com abas **Provedores** e **Modelo**: chave de API ou assinatura conforme suporte do SDK, modelo padrão e exclusões para limpar seletores.
 - Pastas reais, recentes e conversas persistidas por projeto em SQLite.
 - Chat com streaming, cancelamento, recuperação após reinício, resultados de ferramentas e tokens/custo estimado.
-- Um agente geral com `list_files`, `read_file`, `search_files`, `write_file`, `edit_file` e `run_shell`, sem pedidos de permissão nesta fase.
+- Agentes declarativos em YAML, globais (`~/.computador/agents`) ou de projeto (`.computador/agents`), com editor, modelo/pensamento preferidos e limites de runtime.
+- Sessões vinculadas a um snapshot do agente e delegação síncrona por `delegate_task`, incluindo runs persistidos e painel dockável **Subagente**.
+- `list_files`, `read_file`, `search_files`, `write_file`, `edit_file` e `run_shell`, sem pedidos de permissão nesta fase.
 - Árvore de arquivos real, código e Markdown; painel Terminal com saída dos comandos do agente.
 - Docking, layouts, português/inglês, temas e tamanho do texto preservados.
 
-No Electron, abra uma pasta, conecte um provedor em Preferências → Provedores, escolha o padrão em Modelo e crie uma conversa. Credenciais usam armazenamento criptografado da plataforma; sem ele, duram apenas até fechar o app. O shell executa com os privilégios do usuário, sem sandbox de SO. O motor de permissões será implementado futuramente.
+No Electron, abra uma pasta, conecte um provedor em Preferências → Provedores, escolha o padrão em Modelo e crie ou edite perfis em Agentes. Credenciais usam armazenamento criptografado da plataforma; sem ele, duram apenas até fechar o app. O shell executa com os privilégios do usuário, sem sandbox de SO. O motor de permissões será implementado futuramente.
 
 `npm run dev` abre apenas a demonstração de navegador. O backend real é iniciado por `npm run dev:electron` ou `npm start` após build. Mudanças no backend exigem novo build e reinício do Electron.
 

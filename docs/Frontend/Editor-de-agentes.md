@@ -1,14 +1,27 @@
 ---
 tipo: guia
-status: planejado
+status: implementado-parcialmente
 origem: "harness-architecture.md; seções 26"
 ---
 
 # Editor de agentes
 
-O editor deve produzir configuração declarativa. Na fase mockada, permitir criar e editar agentes globais e de projeto, escolher modelos do catálogo mock e selecionar um root agent para uma sessão. Não deixar o formulário depender diretamente de pi-ai.
+O editor produz configuração declarativa e permite criar, editar, duplicar e excluir agentes de usuário e projeto. Modelo e pensamento são preferências opcionais; a sessão pode substituí-los.
 
-> **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.
+> **Estado do projeto:** identidade, modelo, prompt e limites de runtime estão implementados. Tools, skills e permissões selecionáveis permanecem futuras.
+
+## Comportamento implementado
+
+- lista agrupada por Usuário e Projeto;
+- agente de usuário padrão e última escolha por projeto;
+- ID e escopo imutáveis após a criação;
+- conflito por revisão ao editar o YAML externamente;
+- comentários preservados nas edições de arquivos válidos;
+- exclusão recuperável pela lixeira do sistema;
+- proteção contra remover o último agente de usuário;
+- aviso de que edições não alteram sessões existentes;
+- seletor de agente bloqueado após a primeira mensagem;
+- painel Subagente com árvore e transcript completo dos runs filhos.
 
 ## 26. UI de criação de agentes
 

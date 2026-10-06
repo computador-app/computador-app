@@ -125,7 +125,7 @@ export function ChatPanel() {
             <div className="model-controls">
               <select
                 aria-label={t.agent}
-                disabled={busy}
+                disabled={busy || !!session.messages.length}
                 value={session.agentId}
                 onChange={(e) =>
                   service.updateSession(session.id, {

@@ -6,6 +6,8 @@ origem: "harness-architecture.md; seções 5, 56, 57, 58, 59"
 
 # Configuração e workspaces
 
+> **Implementação de 05/10/2026:** para agentes, os diretórios canônicos são `~/.computador/agents` e `<projeto>/.computador/agents`. Os exemplos `.myharness` abaixo permanecem históricos para as demais famílias de configuração ainda não implementadas.
+
 Precedência de configuração e resolução de agentes são regras diferentes. Os exemplos JSON/YAML e .myharness são conceituais; formato definitivo, diretório de produto e semântica de merge ainda precisam de decisão. Aliases de secrets nunca devem conter valores de credenciais.
 
 > **Estado do projeto:** arquitetura planejada; não há implementação no repositório na criação deste cofre. Decisões aceitas não significam funcionalidades entregues.

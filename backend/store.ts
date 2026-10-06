@@ -1,9 +1,13 @@
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
-import type { ChatSession, WorkspaceInfo } from "../src/shared/protocol.js";
+import type {
+  ChatSession,
+  SubagentRun,
+  WorkspaceInfo,
+} from "../src/shared/protocol.js";
 export class Store {
   db: DatabaseSync;
-  constructor(path: string) {
+  constructor(readonly path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
       CREATE TABLE IF NOT EXISTS migrations(version INTEGER PRIMARY KEY);
@@ -14,6 +18,7 @@ export class Store {
       CREATE TABLE IF NOT EXISTS transcripts(session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE, version INTEGER NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, status TEXT NOT NULL, started INTEGER NOT NULL, ended INTEGER);
       CREATE TABLE IF NOT EXISTS tool_runs(id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS subagent_runs(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS providers(id TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1);
       CREATE TABLE IF NOT EXISTS credentials(id TEXT PRIMARY KEY, encrypted BLOB NOT NULL);
       INSERT OR IGNORE INTO migrations VALUES(1);`);
@@ -32,6 +37,13 @@ export class Store {
     this.db.exec(
       "UPDATE runs SET status='interrupted', ended=unixepoch()*1000 WHERE status='running'",
     );
+    for (const run of this.subagentRuns())
+      if (run.status === "running") {
+        run.status = "interrupted";
+        run.error = "Execução interrompida / Run interrupted";
+        run.endedAt = Date.now();
+        this.saveSubagentRun(run);
+      }
   }
   get<T>(key: string, fallback: T): T {
     const row = this.db
@@ -114,6 +126,18 @@ export class Store {
   }
   deleteSession(id: string) {
     this.db.prepare("DELETE FROM sessions WHERE id=?").run(id);
+  }
+  subagentRuns(): SubagentRun[] {
+    return this.db
+      .prepare("SELECT data FROM subagent_runs")
+      .all()
+      .map((row) => JSON.parse(row.data as string) as SubagentRun)
+      .sort((a, b) => b.startedAt - a.startedAt);
+  }
+  saveSubagentRun(run: SubagentRun) {
+    this.db
+      .prepare("INSERT OR REPLACE INTO subagent_runs VALUES(?,?,?)")
+      .run(run.id, run.sessionId, JSON.stringify(run));
   }
   close() {
     this.db.close();

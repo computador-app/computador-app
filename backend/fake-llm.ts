@@ -5,6 +5,7 @@ import type {
   ThinkingLevel,
 } from "../src/shared/protocol.js";
 import type { Store } from "./store.js";
+import type { ToolDefinition } from "./tools.js";
 /** Deterministic Electron integration-test adapter. Never selected in production. */
 export class FakeLLMService implements LLMService {
   constructor(private store: Store) {}
@@ -91,6 +92,7 @@ export class FakeLLMService implements LLMService {
     _id: string,
     _thinkingLevel: ThinkingLevel,
     onText: (text: string) => void,
+    _tools?: ToolDefinition[],
   ): Promise<Turn> {
     const last = history.at(-1) as { role?: string; text?: string } | undefined;
     let text = "Resposta de teste / Test response";
@@ -113,6 +115,14 @@ export class FakeLLMService implements LLMService {
           arguments: { command: "echo shell-ok" },
         },
       ];
+    if (last?.role === "user" && last.text === "delegate")
+      calls = [
+        {
+          id: "delegate",
+          name: "delegate_task",
+          arguments: { task: "child task" },
+        },
+      ];
     const delay = last?.text === "slow" ? 200 : 2;
     for (let i = 1; i <= text.length; i++) {
       signal.throwIfAborted();
@@ -133,6 +143,7 @@ export class FakeLLMService implements LLMService {
     signal: AbortSignal,
     id: string,
     thinkingLevel: ThinkingLevel,
+    tools?: ToolDefinition[],
   ) {
     return this.stream(
       model,
@@ -142,6 +153,7 @@ export class FakeLLMService implements LLMService {
       id,
       thinkingLevel,
       () => {},
+      tools,
     );
   }
   cleanup() {}

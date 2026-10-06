@@ -1,4 +1,11 @@
 import type { Application } from "./application.js";
+import type {
+  AgentDefinition,
+  AgentRef,
+  AgentRuntimeConfig,
+  AgentScope,
+  ThinkingLevel,
+} from "../src/shared/protocol.js";
 const str = (v: unknown, max = 1024) => {
   if (typeof v !== "string" || v.length > max || v.includes("\0"))
     throw new Error("Invalid text");
@@ -33,6 +40,58 @@ const thinkingLevel = (v: unknown) => {
     | "high"
     | "xhigh"
     | "max";
+};
+const agentRef = (v: unknown) => {
+  const value = str(v, 80);
+  if (!/^(user|project):[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(value))
+    throw new Error("Invalid agent reference");
+  return value as AgentRef;
+};
+const agentDefinition = (v: unknown): AgentDefinition => {
+  const value = obj(v);
+  const allowed = new Set([
+    "version",
+    "id",
+    "name",
+    "description",
+    "model",
+    "thinkingLevel",
+    "systemPrompt",
+    "runtime",
+  ]);
+  if (Object.keys(value).some((key) => !allowed.has(key)) || value.version !== 1)
+    throw new Error("Invalid agent");
+  let runtime: AgentRuntimeConfig | undefined;
+  if (value.runtime !== undefined) {
+    const source = obj(value.runtime);
+    const keys = [
+      "maxDelegationDepth",
+      "maxConcurrentSubagents",
+      "maxTurns",
+      "maxToolCalls",
+      "timeoutSeconds",
+    ] as const;
+    if (Object.keys(source).some((key) => !keys.includes(key as never)))
+      throw new Error("Invalid runtime");
+    runtime = {};
+    for (const key of keys)
+      if (source[key] !== undefined) {
+        if (!Number.isInteger(source[key])) throw new Error("Invalid runtime");
+        runtime[key] = source[key] as number;
+      }
+  }
+  return {
+    version: 1,
+    id: str(value.id, 64),
+    name: str(value.name, 80),
+    description: str(value.description, 280),
+    systemPrompt: str(value.systemPrompt, 100_000),
+    ...(value.model !== undefined ? { model: model(value.model) } : {}),
+    ...(value.thinkingLevel !== undefined
+      ? { thinkingLevel: thinkingLevel(value.thinkingLevel) }
+      : {}),
+    ...(runtime && Object.keys(runtime).length ? { runtime } : {}),
+  };
 };
 const images = (v: unknown) => {
   if (v === undefined) return [];
@@ -75,7 +134,11 @@ export async function dispatch(
       const p = obj(args[1]);
       if (
         Object.keys(p).some(
-          (k) => k !== "title" && k !== "model" && k !== "thinkingLevel",
+          (k) =>
+            k !== "title" &&
+            k !== "model" &&
+            k !== "thinkingLevel" &&
+            k !== "agentRef",
         )
       )
         throw new Error("Invalid patch");
@@ -85,6 +148,7 @@ export async function dispatch(
         ...(p.thinkingLevel !== undefined
           ? { thinkingLevel: thinkingLevel(p.thinkingLevel) }
           : {}),
+        ...(p.agentRef !== undefined ? { agentRef: agentRef(p.agentRef) } : {}),
       });
     }
     case "sendMessage": {
@@ -136,6 +200,33 @@ export async function dispatch(
       );
     case "refreshModels":
       return app.refreshModels();
+    case "saveAgent": {
+      const input = obj(args[0]);
+      if (
+        Object.keys(input).some(
+          (key) =>
+            key !== "scope" &&
+            key !== "definition" &&
+            key !== "expectedRevision",
+        )
+      )
+        throw new Error("Invalid agent input");
+      if (input.scope !== "user" && input.scope !== "project")
+        throw new Error("Invalid agent scope");
+      return app.saveAgent({
+        scope: input.scope as AgentScope,
+        definition: agentDefinition(input.definition),
+        ...(input.expectedRevision !== undefined
+          ? { expectedRevision: str(input.expectedRevision, 128) }
+          : {}),
+      });
+    }
+    case "deleteAgent":
+      return app.deleteAgent(agentRef(args[0]));
+    case "setDefaultAgent":
+      return app.setDefaultAgent(agentRef(args[0]));
+    case "cancelSubagent":
+      return app.cancelSubagent(str(args[0]));
     case "listFiles":
       return app.listFiles();
     case "readFile":

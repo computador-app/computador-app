@@ -112,6 +112,25 @@ test("thinking levels and image inputs follow model capabilities", async (t) => 
     /does not accept images/i,
   );
 });
+test("sessions snapshot their agent and expose inspectable subagent runs", async (t) => {
+  const { app } = await fixture(t);
+  const id = app.createSession();
+  const before = app.snapshot().sessions.find((session) => session.id === id);
+  assert.equal(before.agentSnapshot, undefined);
+  await app.sendMessage(id, "delegate", "en");
+  await finished(app, id);
+  const snapshot = app.snapshot();
+  const session = snapshot.sessions.find((item) => item.id === id);
+  assert.equal(session.agentSnapshot.name, "Computador");
+  assert.equal(snapshot.subagentRuns.length, 1);
+  assert.equal(snapshot.subagentRuns[0].status, "completed");
+  assert.equal(snapshot.subagentRuns[0].messages[0].text, "child task");
+  assert.equal(
+    session.messages.find((message) => message.tool?.name === "delegate_task")
+      .tool.subagentRunId,
+    snapshot.subagentRuns[0].id,
+  );
+});
 test("cancel preserves partial output, switching sessions does not cancel, deletion cancels", async (t) => {
   const { app } = await fixture(t);
   const id = app.createSession();

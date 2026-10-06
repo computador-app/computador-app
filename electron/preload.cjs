@@ -17,6 +17,10 @@ for (const name of [
   "setDefault",
   "setHidden",
   "refreshModels",
+  "saveAgent",
+  "deleteAgent",
+  "setDefaultAgent",
+  "cancelSubagent",
   "listFiles",
   "readFile",
 ]) {

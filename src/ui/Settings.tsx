@@ -2,6 +2,7 @@ import { ProviderSettings } from "./ProviderSettings";
 import { useDomain } from "../domain/context";
 import { useEffect, useRef, useState } from "react";
 import "./settings.css";
+import { AgentSettings } from "./AgentSettings";
 
 export interface SettingsProps {
   locale: "pt-BR" | "en";
@@ -247,11 +248,7 @@ export function Settings({
             {activeTab === 2 && <ProviderSettings tab="providers" />}
             {activeTab === 3 && <ProviderSettings tab="models" />}
             {activeTab === 4 && (
-              <p className="settings-description">
-                {pt
-                  ? "Um agente geral com leitura, escrita e shell, sem pedidos de permissão. Perfis editáveis e delegação estarão disponíveis em uma fase futura."
-                  : "One general agent with file reading, writing and shell, without approval prompts. Editable profiles and delegation are planned for a future phase."}
-              </p>
+              <AgentSettings />
             )}
             {activeTab === 5 && (
               <>

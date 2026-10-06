@@ -21,6 +21,7 @@ interface DomainContextValue {
   newSession: () => void;
   selectSession: (id: string) => void;
   openFile: (path: string) => void;
+  openSubagent: (id: string) => void;
 }
 const Context = createContext<DomainContextValue | null>(null);
 export function DomainProvider({
@@ -66,6 +67,7 @@ export function DomainProvider({
           service.openFile(path);
           onCommand("file.open", { path });
         },
+        openSubagent: (id) => onCommand("subagent.open", { id }),
       }}
     >
       {children}

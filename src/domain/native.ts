@@ -5,6 +5,7 @@ import type {
   Scenario,
 } from "./service";
 import type { BackendAPI, AppSnapshot, ModelRef } from "../shared/protocol";
+import type { AgentRef } from "../shared/protocol";
 export class NativeApplicationService implements ApplicationService {
   private listeners = new Set<() => void>();
   private state: DomainState = {
@@ -67,7 +68,7 @@ export class NativeApplicationService implements ApplicationService {
       activeSessionId: live.activeSessionId,
       sessions: live.sessions.map((s) => ({
         ...s,
-        agentId: "general",
+        agentId: s.agentRef,
         model: s.model ? JSON.stringify(s.model) : "",
         messages: s.messages
           .filter((m) => m.role !== "tool")
@@ -77,6 +78,15 @@ export class NativeApplicationService implements ApplicationService {
             text: m.text,
           })),
         status: s.status === "interrupted" ? "failed" : s.status,
+      })),
+      agents: live.agents.map((agent) => ({
+        id: agent.ref,
+        name: agent.name,
+        description: agent.description,
+        scope: agent.scope === "project" ? "workspace" : "user",
+        model: agent.model ? JSON.stringify(agent.model) : "",
+        instructions: agent.systemPrompt,
+        canDelegate: true,
       })),
       ...(changed ? { files: [], selectedFile: "", selectedMarkdown: "" } : {}),
     });
@@ -129,6 +139,7 @@ export class NativeApplicationService implements ApplicationService {
       this.backend.updateSession(id, {
         ...(patch.title !== undefined ? { title: patch.title } : {}),
         ...(patch.model ? { model: JSON.parse(patch.model) as ModelRef } : {}),
+        ...(patch.agentId ? { agentRef: patch.agentId as AgentRef } : {}),
       }),
     );
   };

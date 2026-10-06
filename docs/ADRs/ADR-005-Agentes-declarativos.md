@@ -8,7 +8,7 @@ origem: "harness-architecture.md; ADR-005"
 
 **ID:** ADR-005  
 **Data de registro:** 2026-10-01  
-**Status:** aceita como direção arquitetural; implementação planejada.
+**Status:** aceita e implementada no incremento de 05/10/2026.
 
 ## Contexto
 
@@ -25,6 +25,12 @@ Agentes são configurações, não subclasses concretas.
 ## Consequências
 
 Resolver políticas e referências por contratos; definir validação e herança antes do runtime real.
+
+## Implementação vigente
+
+Cada agente é um arquivo YAML `version: 1`. O escopo é inferido pelo diretório e a identidade canônica combina escopo e ID (`user:id` ou `project:id`), sem sobrescrita implícita. O catálogo observa `~/.computador/agents` e o diretório do projeto ativo em `.computador/agents`.
+
+Sessões capturam um snapshot da definição na primeira mensagem. Modelo e nível de pensamento são preferências iniciais, não vínculos fixos. A delegação cria runs filhos persistidos e inspecionáveis pelo painel Subagente.
 
 ## Alternativas e limites
 
