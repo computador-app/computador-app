@@ -4,6 +4,12 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 const root = process.argv[2] ?? "release";
+const pkg = JSON.parse(
+  await (await import("node:fs/promises")).readFile("package.json", "utf8"),
+);
+const productName = pkg.build?.productName ?? pkg.productName ?? pkg.name;
+const linuxExecutable =
+  pkg.build?.linux?.executableName ?? pkg.build?.executableName ?? pkg.name.toLowerCase();
 
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -21,10 +27,10 @@ const candidates = await files(root);
 const executable = candidates.find((file) => {
   const normalized = file.replaceAll("\\", "/");
   if (process.platform === "darwin")
-    return normalized.endsWith("/Computador.app/Contents/MacOS/Computador");
+    return normalized.endsWith(`/${productName}.app/Contents/MacOS/${productName}`);
   if (process.platform === "win32")
-    return normalized.includes("/win-unpacked/") && basename(file) === "Computador.exe";
-  return normalized.includes("/linux-unpacked/") && basename(file) === "computador";
+    return normalized.includes("/win-unpacked/") && basename(file) === `${productName}.exe`;
+  return normalized.includes("/linux-unpacked/") && basename(file) === linuxExecutable;
 });
 
 if (!executable) throw new Error(`Packaged executable not found under ${root}`);
@@ -47,9 +53,7 @@ try {
   if (!title.includes("Computador"))
     throw new Error(`Unexpected packaged window title: ${title}`);
   const version = await app.evaluate(({ app }) => app.getVersion());
-  const expected = JSON.parse(
-    await (await import("node:fs/promises")).readFile("package.json", "utf8"),
-  ).version;
+  const expected = pkg.version;
   if (version !== expected)
     throw new Error(`Packaged version ${version} does not match ${expected}`);
   console.log(`Packaged smoke passed: ${executable} (${version})`);
